@@ -1,5 +1,14 @@
 # HttpStatusExtention
 HttpStatusでは表示できない情報を追加で送信します。  
+今のところ下記のオプションが追加されます。  
+## 依存MOD  
+SiraUtil  
+[BeatSaberHttpStatus](https://github.com/denpadokei/beatsaber-http-status)  
+SongDataCore  
+SongCore  
+  
+# 注意  
+BeatSaberHTTPStatusはデンパ時計が作ったものを使用してください。  
   
 ### Status object
 
