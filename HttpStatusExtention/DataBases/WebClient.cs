@@ -71,7 +71,7 @@ namespace HttpStatusExtention.DataBases
             {
                 Timeout = new TimeSpan(0, 0, 15)
             };
-            _client.DefaultRequestHeaders.UserAgent.TryParseAdd($"SongRequestManagerV2/{Assembly.GetExecutingAssembly().GetName().Version}");
+            _client.DefaultRequestHeaders.UserAgent.TryParseAdd($"HttpStatusExtention/{Assembly.GetExecutingAssembly().GetName().Version}");
         }
 
         internal static async Task<WebResponse> GetAsync(string url, CancellationToken token)
