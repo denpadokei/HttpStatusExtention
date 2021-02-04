@@ -14,6 +14,9 @@ BeatSaberHTTPStatusはデンパ時計が作ったものを使用してくださ�
 
 ```js
 StatusObject = {
+　"performance": null | {
+		"current_pp": Double, // スコアに応じた取得可能PP
+  },
   "beatmap": null | {
     "difficulty": "Easy" | "Normal" | "Hard" | "Expert" | "ExpertPlus", // Beatmap difficultyに加えてラベルがついてきます。（後で別パラメーターとして分離させるかも）
     "pp": ランク譜面の時PPが入ります。
