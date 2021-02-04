@@ -1,4 +1,5 @@
-﻿using HttpStatusExtention.Installer;
+﻿using HttpStatusExtention.DataBases;
+using HttpStatusExtention.Installer;
 using IPA;
 using IPA.Config;
 using IPA.Config.Stores;
@@ -30,7 +31,8 @@ namespace HttpStatusExtention
             Instance = this;
             Log = logger;
             Log.Info("HttpStatusExtention initialized.");
-            zenjector.OnGame<HttpStatusExtentionInstaller>();
+            zenjector.OnGame<HttpStatusExtentionInstaller>().OnlyForStandard();
+            _ = ScoreDataBase.Instance.Initialize();
         }
 
         #region BSIPA Config
