@@ -3,7 +3,7 @@
   "id": "HttpStatusExtention",
   "name": "HttpStatusExtention",
   "author": "denpadokei",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "",
   "gameVersion": "1.13.2",
   "dependsOn": {
