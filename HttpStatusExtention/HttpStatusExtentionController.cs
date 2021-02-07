@@ -29,7 +29,15 @@ namespace HttpStatusExtention
         BeatStarSongDifficultyStats _currentStarSongDiff;
 
         double songRawPP;
-        
+        private AudioTimeSyncController audioTimeSyncController;
+        private PauseController pauseController;
+
+        [Inject]
+        private void Constractor(DiContainer container)
+        {
+            this.audioTimeSyncController = container.TryResolve<AudioTimeSyncController>();
+            this.pauseController = container.TryResolve<PauseController>();
+        }
         public void Initialize()
         {
             this.Setup();
@@ -53,6 +61,9 @@ namespace HttpStatusExtention
         private void Setup()
         {
             Plugin.Log.Debug($"Setup start.");
+            if (this.pauseController != null) {
+                this.pauseController.didResumeEvent += OnGameResume;
+            }
             if (ScoreDataBase.Instance.Init) {
                 this.relativeScoreAndImmediateRankCounter.relativeScoreOrImmediateRankDidChangeEvent += this.RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent;
             }
@@ -68,12 +79,13 @@ namespace HttpStatusExtention
             }
             this._currentStarSong = SongDataCoreUtil.GetBeatStarSong(_currentCustomBeatmapLevel);
             this._currentStarSongDiff = SongDataCoreUtil.GetBeatStarSongDiffculityStats(_currentCustomBeatmapLevel, _currentBeatmapDifficulty);
-            
+
+            if (this.statusManager.StatusJSON["beatmap"] == null) {
+                this.statusManager.StatusJSON["beatmap"] = new JSONObject();
+            }
+            var beatmapJson = this.statusManager.StatusJSON["beatmap"].AsObject;
+
             if (this._currentStarSong != null && this._currentStarSongDiff != null) {
-                if (this.statusManager.StatusJSON["beatmap"] == null) {
-                    this.statusManager.StatusJSON["beatmap"] = new JSONObject();
-                }
-                var beatmapJson = this.statusManager.StatusJSON["beatmap"].AsObject;
                 var multiplier = this.statusManager.GameStatus.songSpeedMultiplier;
                 if (ScoreDataBase.Instance.Init) {
                     if (multiplier == 1 || !PPCounterUtil.AllowedPositiveModifiers(levelID)) {
@@ -88,9 +100,8 @@ namespace HttpStatusExtention
                 beatmapJson["upVotes"] = new JSONNumber(this._currentStarSong.upVotes);
                 beatmapJson["downVotes"] = new JSONNumber(this._currentStarSong.downVotes);
                 beatmapJson["rating"] = new JSONNumber(this._currentStarSong.rating);
-
-                this.statusManager.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.SongStart);
             }
+            HMMainThreadDispatcher.instance.Enqueue(this.SongStartWait(this._currentStarSong != null && this._currentStarSongDiff != null));
         }
 
         private void RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent()
@@ -114,6 +125,34 @@ namespace HttpStatusExtention
             this.statusManager.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.SongStart);
         }
 
+        private IEnumerator SongStartWait(bool update,bool songStart = true)
+        {
+            if (this.audioTimeSyncController != null) {
+                float songTime = this.audioTimeSyncController.songTime;
+                yield return new WaitWhile(() => this.audioTimeSyncController.songTime > songTime);
+                PracticeSettings practiceSettings = this.CurrentData.practiceSettings;
+                float songSpeedMul = this.CurrentData.gameplayModifiers.songSpeedMul;
+                if (practiceSettings != null) songSpeedMul = practiceSettings.songSpeedMul;
+                this.statusManager.GameStatus.start = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - (long)(this.audioTimeSyncController.songTime * 1000f / songSpeedMul);
+                //resumeの時はstartSongTime分がsongTimeに含まれているので処理不要
+                if (songStart && practiceSettings != null) this.statusManager.GameStatus.start -= (long)(practiceSettings.startSongTime * 1000f / songSpeedMul);
+                update = true;
+            }
+            if (update == false) {
+                yield break;
+            }
+            if (songStart) {
+                this.statusManager.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.SongStart);
+            }
+            else {
+                this.statusManager.EmitStatusUpdate(ChangedProperty.Beatmap, BeatSaberEvent.Resume);
+            }
+        }
+
+        public void OnGameResume()
+        {
+            HMMainThreadDispatcher.instance.Enqueue(this.SongStartWait(false,false));
+        }
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue) {
@@ -121,6 +160,9 @@ namespace HttpStatusExtention
                     // TODO: マネージド状態を破棄します (マネージド オブジェクト)
                     Plugin.Log.Debug($"Dispose call");
                     this.relativeScoreAndImmediateRankCounter.relativeScoreOrImmediateRankDidChangeEvent -= this.RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent;
+                    if (this.pauseController != null) {
+                        this.pauseController.didResumeEvent -= OnGameResume;
+                    }
                 }
 
                 // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
