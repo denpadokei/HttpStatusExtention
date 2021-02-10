@@ -120,8 +120,8 @@ namespace HttpStatusExtention
             if (string.IsNullOrEmpty(currentDiffLabel)) {
                 yield break;
             }
-            yield return new WaitWhile(() => string.IsNullOrEmpty(this.statusManager.GameStatus.difficulty));
-            this.statusManager.GameStatus.difficulty += $"({currentDiffLabel})";
+            var beatmapJson = this.statusManager.StatusJSON["beatmap"].AsObject;
+            beatmapJson["customLabel"] = currentDiffLabel;
             this.statusManager.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.SongStart);
         }
 
