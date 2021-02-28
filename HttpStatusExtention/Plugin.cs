@@ -31,7 +31,8 @@ namespace HttpStatusExtention
             Instance = this;
             Log = logger;
             Log.Info("HttpStatusExtention initialized.");
-            zenjector.OnGame<HttpStatusExtentionInstaller>().OnlyForStandard();
+            zenjector.OnGame<HttpStatusExtentionMultiInstaller>(false).OnlyForMultiplayer();
+            zenjector.OnGame<HttpStatusExtentionInstaller>(true).OnlyForStandard();
             _ = ScoreDataBase.Instance.Initialize();
         }
 

@@ -3,7 +3,7 @@
   "id": "HttpStatusExtention",
   "name": "HttpStatusExtention",
   "author": "denpadokei",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "",
   "gameVersion": "1.13.2",
   "dependsOn": {
@@ -11,7 +11,7 @@
     "SongDataCore": "^1.3.6",
     "SiraUtil": "^2.4.0",
     "SongCore": "^3.0.3",
-    "BeatSaberHTTPStatus": "^3.1.1"
+    "BeatSaberHTTPStatus": "^3.1.2"
   },
   "features": []
 }

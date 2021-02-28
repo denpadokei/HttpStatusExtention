@@ -54,12 +54,19 @@ namespace HttpStatusExtention.PPCounters
         };
         public static bool AllowedPositiveModifiers(string levelID)
         {
-            return songsAllowingPositiveModifiers.Contains(levelID.Split('_').Last().ToUpper());
+            var labels = levelID.Split('_');
+            if (labels.Length != 3) {
+                return true;
+            }
+            return songsAllowingPositiveModifiers.Contains(labels.ElementAt(2).ToUpper());
         }
 
         public static double GetPP(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty)
         {
-            return GetPP(beatmapLevel.levelID.Split('_').Last(), difficulty);
+            if (beatmapLevel == null) {
+                return 0;
+            }
+            return GetPP(beatmapLevel.levelID.Split('_').ElementAt(2), difficulty);
         }
 
         public static double GetPP(string hash, BeatmapDifficulty difficulty)
