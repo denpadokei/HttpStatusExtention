@@ -1,18 +1,15 @@
-﻿using BeatSaberHTTPStatus;
-using BeatSaberHTTPStatus.Interfaces;
+﻿using HttpSiraStatus;
+using HttpSiraStatus.Interfaces;
+using HttpSiraStatus.Util;
 using HttpStatusExtention.DataBases;
 using HttpStatusExtention.Extentions;
 using HttpStatusExtention.PPCounters;
 using HttpStatusExtention.SongDataCores;
-using SimpleJSON;
 using SongCore;
 using SongDataCore.BeatStar;
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 using Zenject;
 
@@ -22,27 +19,23 @@ namespace HttpStatusExtention.Bases
     {
         private bool disposedValue;
         [Inject]
-        private IStatusManager statusManager;
+        private readonly IStatusManager statusManager;
         [Inject]
-        private RelativeScoreAndImmediateRankCounter relativeScoreAndImmediateRankCounter;
+        private readonly RelativeScoreAndImmediateRankCounter relativeScoreAndImmediateRankCounter;
         [Inject]
-        private IAudioTimeSource _audioTimeSource;
-        GameplayCoreSceneSetupData CurrentData => BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData;
-        CustomPreviewBeatmapLevel _currentCustomBeatmapLevel;
-        BeatmapDifficulty _currentBeatmapDifficulty;
-        BeatStarSong _currentStarSong;
-        BeatStarSongDifficultyStats _currentStarSongDiff;
-        double songRawPP;
-        
-        public void Initialize()
-        {
-            this.Setup();
-        }
+        private readonly IAudioTimeSource _audioTimeSource;
 
-        private void SendPP()
-        {
-            this.SendPP(this.relativeScoreAndImmediateRankCounter.relativeScore);
-        }
+        private GameplayCoreSceneSetupData CurrentData => BS_Utils.Plugin.LevelData.GameplayCoreSceneSetupData;
+
+        private CustomPreviewBeatmapLevel _currentCustomBeatmapLevel;
+        private BeatmapDifficulty _currentBeatmapDifficulty;
+        private BeatStarSong _currentStarSong;
+        private BeatStarSongDifficultyStats _currentStarSongDiff;
+        private double songRawPP;
+
+        public void Initialize() => this.Setup();
+
+        private void SendPP() => this.SendPP(this.relativeScoreAndImmediateRankCounter.relativeScore);
 
         private void SendPP(float relativeScore)
         {
@@ -57,21 +50,21 @@ namespace HttpStatusExtention.Bases
         protected virtual void Setup()
         {
             Plugin.Log.Debug($"Setup start.");
-            
+
             if (ScoreDataBase.Instance.Init) {
                 this.relativeScoreAndImmediateRankCounter.relativeScoreOrImmediateRankDidChangeEvent += this.RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent;
             }
-            var beatmapLevel = CurrentData.difficultyBeatmap.level;
-            this._currentBeatmapDifficulty = CurrentData.difficultyBeatmap.difficulty;
+            var beatmapLevel = this.CurrentData.difficultyBeatmap.level;
+            this._currentBeatmapDifficulty = this.CurrentData.difficultyBeatmap.difficulty;
             var levelID = beatmapLevel.levelID;
 
             this._currentCustomBeatmapLevel = Loader.GetLevelByHash(beatmapLevel.GetHash());
-            this.songRawPP = ScoreDataBase.Instance.Init ? PPCounterUtil.GetPP(_currentCustomBeatmapLevel, _currentBeatmapDifficulty) : 0;
-            if (_currentCustomBeatmapLevel != null) {
-                this.SetCustomLabel(_currentCustomBeatmapLevel, _currentBeatmapDifficulty);
+            this.songRawPP = ScoreDataBase.Instance.Init ? PPCounterUtil.GetPP(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty) : 0;
+            if (this._currentCustomBeatmapLevel != null) {
+                this.SetCustomLabel(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty);
             }
-            this._currentStarSong = SongDataCoreUtil.GetBeatStarSong(_currentCustomBeatmapLevel);
-            this._currentStarSongDiff = SongDataCoreUtil.GetBeatStarSongDiffculityStats(_currentCustomBeatmapLevel, _currentBeatmapDifficulty);
+            this._currentStarSong = SongDataCoreUtil.GetBeatStarSong(this._currentCustomBeatmapLevel);
+            this._currentStarSongDiff = SongDataCoreUtil.GetBeatStarSongDiffculityStats(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty);
 
             if (this.statusManager.StatusJSON["beatmap"] == null) {
                 this.statusManager.StatusJSON["beatmap"] = new JSONObject();
@@ -97,10 +90,7 @@ namespace HttpStatusExtention.Bases
             HMMainThreadDispatcher.instance.Enqueue(this.SongStartWait(this._currentStarSong != null && this._currentStarSongDiff != null));
         }
 
-        private void RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent()
-        {
-            this.SendPP();
-        }
+        private void RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent() => this.SendPP();
 
         private void SetCustomLabel(CustomPreviewBeatmapLevel beatmap, BeatmapDifficulty diff)
         {
@@ -123,10 +113,10 @@ namespace HttpStatusExtention.Bases
         protected virtual IEnumerator SongStartWait(bool update, bool songStart = true)
         {
             if (this._audioTimeSource != null) {
-                float songTime = this._audioTimeSource.songTime;
+                var songTime = this._audioTimeSource.songTime;
                 yield return new WaitWhile(() => this._audioTimeSource.songTime > songTime);
-                PracticeSettings practiceSettings = this.CurrentData.practiceSettings;
-                float songSpeedMul = this.CurrentData.gameplayModifiers.songSpeedMul;
+                var practiceSettings = this.CurrentData.practiceSettings;
+                var songSpeedMul = this.CurrentData.gameplayModifiers.songSpeedMul;
                 if (practiceSettings != null) songSpeedMul = practiceSettings.songSpeedMul;
                 this.statusManager.GameStatus.start = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - (long)(this._audioTimeSource.songTime * 1000f / songSpeedMul);
                 //resumeの時はstartSongTime分がsongTimeに含まれているので処理不要
@@ -144,10 +134,10 @@ namespace HttpStatusExtention.Bases
             }
         }
 
-        
+
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue) {
+            if (!this.disposedValue) {
                 if (disposing) {
                     // TODO: マネージド状態を破棄します (マネージド オブジェクト)
                     Plugin.Log.Debug($"Dispose call");
@@ -156,7 +146,7 @@ namespace HttpStatusExtention.Bases
 
                 // TODO: アンマネージド リソース (アンマネージド オブジェクト) を解放し、ファイナライザーをオーバーライドします
                 // TODO: 大きなフィールドを null に設定します
-                disposedValue = true;
+                this.disposedValue = true;
             }
         }
 
@@ -170,7 +160,7 @@ namespace HttpStatusExtention.Bases
         public void Dispose()
         {
             // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
-            Dispose(disposing: true);
+            this.Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
     }

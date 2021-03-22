@@ -1,10 +1,7 @@
 ﻿using SongCore;
 using SongDataCore.BeatStar;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace HttpStatusExtention.SongDataCores
 {
@@ -14,7 +11,7 @@ namespace HttpStatusExtention.SongDataCores
         /// HASHがキーになっています。
         /// </summary>
         public static Dictionary<string, BeatStarSong> SongDataCoreSongs => SongDataCore.Plugin.Songs.Data.Songs;
-        
+
 
         public static bool IsRank(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty beatmapDifficulty)
         {
@@ -42,10 +39,7 @@ namespace HttpStatusExtention.SongDataCores
             }
         }
 
-        public static BeatStarSongDifficultyStats GetBeatStarSongDiffculityStats(BeatStarSong song, BeatmapDifficulty difficulty)
-        {
-                return song.diffs.FirstOrDefault(x => x.diff.Replace("+", "Plus").ToLower() == difficulty.ToString().ToLower());
-        }
+        public static BeatStarSongDifficultyStats GetBeatStarSongDiffculityStats(BeatStarSong song, BeatmapDifficulty difficulty) => song.diffs.FirstOrDefault(x => x.diff.Replace("+", "Plus").ToLower() == difficulty.ToString().ToLower());
 
         public static BeatStarSongDifficultyStats GetBeatStarSongDiffculityStats(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty)
         {
@@ -57,9 +51,6 @@ namespace HttpStatusExtention.SongDataCores
             }
         }
 
-        public static double GetPP(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty)
-        {
-            return GetBeatStarSongDiffculityStats(beatmapLevel, difficulty)?.pp ?? 0;
-        }
+        public static double GetPP(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty) => GetBeatStarSongDiffculityStats(beatmapLevel, difficulty)?.pp ?? 0;
     }
 }

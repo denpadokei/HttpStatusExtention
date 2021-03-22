@@ -1,11 +1,7 @@
 ﻿using HttpStatusExtention.DataBases;
-using HttpStatusExtention.SongDataCores;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Zenject;
 
 namespace HttpStatusExtention.PPCounters
 {
@@ -24,12 +20,12 @@ namespace HttpStatusExtention.PPCounters
                 slopes[i] = m;
             }
         }
-        private static double[] slopes;
+        private static readonly double[] slopes;
 
         /// <summary>
         /// 左がスコアのパーセンテージ、右がPP補正値
         /// </summary>
-        private static (double, double)[] ppCurve = new (double, double)[]
+        private static readonly (double, double)[] ppCurve = new (double, double)[]
         {
             (0, 0),
             (.45, .015),
@@ -48,7 +44,7 @@ namespace HttpStatusExtention.PPCounters
             (1.10, 1.18),
             (1.14, 1.25)
         };
-        private static HashSet<string> songsAllowingPositiveModifiers = new HashSet<string> {
+        private static readonly HashSet<string> songsAllowingPositiveModifiers = new HashSet<string> {
             "2FDDB136BDA7F9E29B4CB6621D6D8E0F8A43B126", // Overkill Nuketime
             "27FCBAB3FB731B16EABA14A5D039EEFFD7BD44C9" // Overkill Kry
         };
@@ -103,10 +99,7 @@ namespace HttpStatusExtention.PPCounters
             return CalculatePP(rawPP, accuracy);
         }
 
-        public static double CalculatePP(double rawPP, double accuracy)
-        {
-            return rawPP * PPPercentage(accuracy);
-        }
+        public static double CalculatePP(double rawPP, double accuracy) => rawPP * PPPercentage(accuracy);
 
         private static double PPPercentage(double accuracy)
         {

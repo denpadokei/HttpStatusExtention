@@ -1,4 +1,4 @@
-﻿using SimpleJSON;
+﻿using HttpSiraStatus.Util;
 using System;
 using System.IO;
 using System.Net;
@@ -23,21 +23,18 @@ namespace HttpStatusExtention.DataBases
 
         internal WebResponse(HttpResponseMessage resp, byte[] body)
         {
-            StatusCode = resp.StatusCode;
-            ReasonPhrase = resp.ReasonPhrase;
-            Headers = resp.Headers;
-            RequestMessage = resp.RequestMessage;
-            IsSuccessStatusCode = resp.IsSuccessStatusCode;
+            this.StatusCode = resp.StatusCode;
+            this.ReasonPhrase = resp.ReasonPhrase;
+            this.Headers = resp.Headers;
+            this.RequestMessage = resp.RequestMessage;
+            this.IsSuccessStatusCode = resp.IsSuccessStatusCode;
 
-            _content = body;
+            this._content = body;
         }
 
-        public byte[] ContentToBytes() => _content;
-        public string ContentToString() => Encoding.UTF8.GetString(_content);
-        public JSONNode ConvertToJsonNode()
-        {
-            return JSONNode.Parse(ContentToString());
-        }
+        public byte[] ContentToBytes() => this._content;
+        public string ContentToString() => Encoding.UTF8.GetString(this._content);
+        public JSONNode ConvertToJsonNode() => JSONNode.Parse(this.ContentToString());
     }
 
     internal static class WebClient
@@ -65,7 +62,7 @@ namespace HttpStatusExtention.DataBases
             catch (Exception e) {
                 Plugin.Log.Debug($"{e}");
             }
-            
+
 
             _client = new HttpClient()
             {
@@ -103,8 +100,7 @@ namespace HttpStatusExtention.DataBases
         internal static async Task<byte[]> DownloadSong(string url, CancellationToken token, IProgress<double> progress = null)
         {
             // check if beatsaver url needs to be pre-pended
-            if (!url.StartsWith(@"https://beatsaver.com/"))
-            {
+            if (!url.StartsWith(@"https://beatsaver.com/")) {
                 url = $"https://beatsaver.com/{url}";
             }
             try {
@@ -123,8 +119,8 @@ namespace HttpStatusExtention.DataBases
 
         internal static async Task<WebResponse> SendAsync(HttpMethod methodType, string url, CancellationToken token, IProgress<double> progress = null)
         {
-            Plugin.Log.Debug($"{methodType.ToString()}: {url}");
-            
+            Plugin.Log.Debug($"{methodType}: {url}");
+
             // send request
             try {
                 HttpResponseMessage resp = null;
@@ -145,7 +141,7 @@ namespace HttpStatusExtention.DataBases
                         Plugin.Log.Debug($"{resp?.StatusCode}");
                     }
                 } while (resp?.StatusCode != HttpStatusCode.NotFound && resp?.IsSuccessStatusCode != true && retryCount <= RETRY_COUNT);
-                
+
 
                 if (token.IsCancellationRequested) throw new TaskCanceledException();
 
@@ -154,7 +150,7 @@ namespace HttpStatusExtention.DataBases
                     var buffer = new byte[8192];
                     var bytesRead = 0; ;
 
-                    long? contentLength = resp?.Content.Headers.ContentLength;
+                    var contentLength = resp?.Content.Headers.ContentLength;
                     var totalRead = 0;
 
                     // send report
@@ -172,7 +168,7 @@ namespace HttpStatusExtention.DataBases
                     }
 
                     progress?.Report(1);
-                    byte[] bytes = memoryStream.ToArray();
+                    var bytes = memoryStream.ToArray();
 
                     return new WebResponse(resp, bytes);
                 }
