@@ -3,7 +3,7 @@ HttpStatusでは表示できない情報を追加で送信します。
 今のところ下記のオプションが追加されます。  
 ## 依存MOD  
 SiraUtil  
-[BeatSaberHttpStatus](https://github.com/denpadokei/beatsaber-http-status)  
+[HttpSiraStatus](https://github.com/denpadokei/beatsaber-http-status)  
 SongDataCore  
 SongCore  
   
