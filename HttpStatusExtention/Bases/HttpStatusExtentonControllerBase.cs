@@ -58,34 +58,34 @@ namespace HttpStatusExtention.Bases
             this._currentBeatmapDifficulty = this.CurrentData.difficultyBeatmap.difficulty;
             var levelID = beatmapLevel.levelID;
 
-            this._currentCustomBeatmapLevel = Loader.GetLevelByHash(beatmapLevel.GetHash());
-            this.songRawPP = ScoreDataBase.Instance.Init ? PPCounterUtil.GetPP(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty) : 0;
+            this._currentCustomBeatmapLevel = Loader.GetLevelById(beatmapLevel.levelID) as CustomBeatmapLevel;
             if (this._currentCustomBeatmapLevel != null) {
+                this.songRawPP = ScoreDataBase.Instance.Init ? PPCounterUtil.GetPP(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty) : 0;
                 this.SetCustomLabel(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty);
-            }
-            this._currentStarSong = SongDataCoreUtil.GetBeatStarSong(this._currentCustomBeatmapLevel);
-            this._currentStarSongDiff = SongDataCoreUtil.GetBeatStarSongDiffculityStats(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty);
+                this._currentStarSong = SongDataCoreUtil.GetBeatStarSong(this._currentCustomBeatmapLevel);
+                this._currentStarSongDiff = SongDataCoreUtil.GetBeatStarSongDiffculityStats(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty);
 
-            if (this.statusManager.StatusJSON["beatmap"] == null) {
-                this.statusManager.StatusJSON["beatmap"] = new JSONObject();
-            }
-            var beatmapJson = this.statusManager.StatusJSON["beatmap"].AsObject;
-
-            if (this._currentStarSong != null && this._currentStarSongDiff != null) {
-                var multiplier = this.statusManager.GameStatus.songSpeedMultiplier;
-                if (ScoreDataBase.Instance.Init) {
-                    if (multiplier == 1 || !PPCounterUtil.AllowedPositiveModifiers(levelID)) {
-                        beatmapJson["pp"] = new JSONNumber(this.songRawPP * 1.12);
-                    }
-                    else {
-                        beatmapJson["pp"] = new JSONNumber(PPCounterUtil.CalculatePP(this.songRawPP, multiplier));
-                    }
+                if (this.statusManager.StatusJSON["beatmap"] == null) {
+                    this.statusManager.StatusJSON["beatmap"] = new JSONObject();
                 }
-                beatmapJson["star"] = new JSONNumber(this._currentStarSongDiff.star);
-                beatmapJson["downloadCount"] = new JSONNumber(this._currentStarSong.downloadCount);
-                beatmapJson["upVotes"] = new JSONNumber(this._currentStarSong.upVotes);
-                beatmapJson["downVotes"] = new JSONNumber(this._currentStarSong.downVotes);
-                beatmapJson["rating"] = new JSONNumber(this._currentStarSong.rating);
+                var beatmapJson = this.statusManager.StatusJSON["beatmap"].AsObject;
+
+                if (this._currentStarSong != null && this._currentStarSongDiff != null) {
+                    var multiplier = this.statusManager.GameStatus.songSpeedMultiplier;
+                    if (ScoreDataBase.Instance.Init) {
+                        if (multiplier == 1 || !PPCounterUtil.AllowedPositiveModifiers(levelID)) {
+                            beatmapJson["pp"] = new JSONNumber(this.songRawPP * 1.12);
+                        }
+                        else {
+                            beatmapJson["pp"] = new JSONNumber(PPCounterUtil.CalculatePP(this.songRawPP, multiplier));
+                        }
+                    }
+                    beatmapJson["star"] = new JSONNumber(this._currentStarSongDiff.star);
+                    beatmapJson["downloadCount"] = new JSONNumber(this._currentStarSong.downloadCount);
+                    beatmapJson["upVotes"] = new JSONNumber(this._currentStarSong.upVotes);
+                    beatmapJson["downVotes"] = new JSONNumber(this._currentStarSong.downVotes);
+                    beatmapJson["rating"] = new JSONNumber(this._currentStarSong.rating);
+                }
             }
             HMMainThreadDispatcher.instance.Enqueue(this.SongStartWait(this._currentStarSong != null && this._currentStarSongDiff != null));
         }
