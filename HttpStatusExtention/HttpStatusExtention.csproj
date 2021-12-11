@@ -145,10 +145,8 @@
     <Compile Include="DataBases\ScoreDataBase.cs" />
     <Compile Include="DataBases\WebClient.cs" />
     <Compile Include="Extentions\BeatmapLevelExtention.cs" />
-    <Compile Include="HttpStatusExtentionMultiController.cs" />
     <Compile Include="Bases\HttpStatusExtentonControllerBase.cs" />
     <Compile Include="Installer\HttpStatusExtentionInstaller.cs" />
-    <Compile Include="Installer\HttpStatusExtentionMultiInstaller.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="Configuration\PluginConfig.cs" />
     <Compile Include="HttpStatusExtentionController.cs" />

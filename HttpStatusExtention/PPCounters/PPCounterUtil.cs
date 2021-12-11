@@ -27,22 +27,25 @@ namespace HttpStatusExtention.PPCounters
         /// </summary>
         private static readonly (double, double)[] ppCurve = new (double, double)[]
         {
-            (0, 0),
-            (.45, .015),
-            (.50, .03),
-            (.55, .06),
-            (.60, .105),
-            (.65, .16),
-            (.68, .24),
-            (.70, .285),
-            (.80, .563),
-            (.84, .695),
-            (.88, .826),
-            (.945, 1.015),
-            (.95, 1.046),
-            (1.00, 1.12),
-            (1.10, 1.18),
-            (1.14, 1.25)
+            (0f, 0),
+            (.45f, .015f),
+            (.50f, .03f),
+            (.55f, .06f),
+            (.60f, .105f),
+            (.65f, .15f),
+            (.70f, .22f),
+            (.75f, .35f),
+            (.80f, .42f),
+            (.86f, .6f),
+            (.9f, .78f),
+            (.925f, .905f),
+            (.945f, 1.015f),
+            (.95f, 1.046f),
+            (.96f, 1.115f),
+            (.97f, 1.2f),
+            (.98f, 1.29f),
+            (.99f, 1.39f),
+            (1, 1.5f),
         };
         private static readonly HashSet<string> songsAllowingPositiveModifiers = new HashSet<string> {
             "2FDDB136BDA7F9E29B4CB6621D6D8E0F8A43B126", // Overkill Nuketime
@@ -103,8 +106,8 @@ namespace HttpStatusExtention.PPCounters
 
         private static double PPPercentage(double accuracy)
         {
-            if (accuracy >= 1.14)
-                return 1.25;
+            if (accuracy >= 1)
+                return 1.5;
             if (accuracy <= 0)
                 return 0;
 

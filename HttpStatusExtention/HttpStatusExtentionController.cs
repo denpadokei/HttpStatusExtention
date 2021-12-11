@@ -10,7 +10,10 @@ namespace HttpStatusExtention
         private void OnGameResume() => HMMainThreadDispatcher.instance.Enqueue(this.SongStartWait(false, false));
 
         [Inject]
-        protected void Constractor(PauseController pauseController) => this._pauseController = pauseController;
+        protected void Constractor(DiContainer diContainer)
+        {
+            this._pauseController = diContainer.TryResolve<PauseController>();
+        }
 
         protected override void Setup()
         {
@@ -23,7 +26,9 @@ namespace HttpStatusExtention
         protected override void Dispose(bool disposing)
         {
             if (disposing) {
-                this._pauseController.didResumeEvent -= this.OnGameResume;
+                if (this._pauseController != null) {
+                    this._pauseController.didResumeEvent -= this.OnGameResume;
+                }
             }
             base.Dispose(disposing);
         }
