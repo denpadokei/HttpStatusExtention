@@ -11,7 +11,7 @@ namespace HttpStatusExtention.Installer
     {
         public override void InstallBindings()
         {
-            this.Container.BindInterfacesAndSelfTo<SRMQueueStatus>().FromNewComponentOnNewGameObject().AsCached().NonLazy();
+            this.Container.BindInterfacesAndSelfTo<SRMQueueStatus>().AsCached().NonLazy();
         }
     }
 }
