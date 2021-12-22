@@ -26,5 +26,7 @@ StatusObject = {
     "downVotes": ダウンボーテ数
     "rating": アップボーテとダウンボーテの比率みたいなもの
   },
+  "other": null | {
+    "srm_queue_status": Boolean // キューが開いてたらtrue.閉じてたらfalse.
 }
 ```
