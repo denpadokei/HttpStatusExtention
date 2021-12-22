@@ -1,7 +1,10 @@
-﻿using HttpStatusExtention.DataBases;
+﻿using HarmonyLib;
+using HttpStatusExtention.DataBases;
 using HttpStatusExtention.Installer;
 using IPA;
+using IPA.Loader;
 using SiraUtil.Zenject;
+using System.Reflection;
 using IPALogger = IPA.Logging.Logger;
 
 namespace HttpStatusExtention
@@ -11,6 +14,8 @@ namespace HttpStatusExtention
     {
         internal static Plugin Instance { get; private set; }
         internal static IPALogger Log { get; private set; }
+        private static Harmony _harmony;
+        public const string HARMONY_ID = "HttpStatusExtention.com.github.denpadokei";
 
         [Init]
         /// <summary>
@@ -23,8 +28,9 @@ namespace HttpStatusExtention
             Instance = this;
             Log = logger;
             Log.Info("HttpStatusExtention initialized.");
-            zenjector.OnGame<HttpStatusExtentionMultiInstaller>(false).OnlyForMultiplayer();
-            zenjector.OnGame<HttpStatusExtentionInstaller>(true).OnlyForStandard();
+            _harmony = new Harmony(HARMONY_ID);
+            zenjector.Install<HttpStatusExtentionInstaller>(Location.Player);
+            zenjector.Install<HttpStatusExtentionMenuAndGameInstaller>(Location.Menu | Location.Player);
             _ = ScoreDataBase.Instance.Initialize();
         }
 
@@ -45,5 +51,18 @@ namespace HttpStatusExtention
 
         [OnExit]
         public void OnApplicationQuit() => Log.Debug("OnApplicationQuit");
+        [OnEnable]
+        public void OnEnable()
+        {
+            if (PluginManager.GetDisabledPluginFromId("SongRequestManagerV2") != null) {
+                _harmony.PatchAll(Assembly.GetExecutingAssembly());
+            }
+        }
+
+        [OnDisable]
+        public void OnDisable()
+        {
+            _harmony.UnpatchSelf();
+        }
     }
 }
