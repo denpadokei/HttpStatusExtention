@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using HttpStatusExtention.DataBases;
 using HttpStatusExtention.Installer;
+using HttpStatusExtention.SongDataCores;
 using IPA;
 using IPA.Loader;
 using SiraUtil.Zenject;
@@ -57,6 +58,7 @@ namespace HttpStatusExtention
             if (PluginManager.GetPlugin("Song Request Manager V2") != null) {
                 _harmony.PatchAll(Assembly.GetExecutingAssembly());
             }
+            HMMainThreadDispatcher.instance.Enqueue(SongDataCoreUtil.Initialize());
         }
 
         [OnDisable]

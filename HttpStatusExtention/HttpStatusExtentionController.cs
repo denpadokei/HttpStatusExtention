@@ -1,9 +1,10 @@
 ﻿using HttpStatusExtention.Bases;
+using System;
 using Zenject;
 
 namespace HttpStatusExtention
 {
-    public class HttpStatusExtentionController : HttpStatusExtentonControllerBase
+    public class HttpStatusExtentionController : HttpStatusExtentonControllerBase, IInitializable, IDisposable
     {
         private PauseController _pauseController;
 
