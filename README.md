@@ -28,5 +28,6 @@ StatusObject = {
   },
   "other": null | {
     "srm_queue_status": Boolean // キューが開いてたらtrue.閉じてたらfalse.
+  }
 }
 ```
