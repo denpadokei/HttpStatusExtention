@@ -27,6 +27,12 @@ namespace HttpStatusExtention
         public void Initialize()
         {
             SRMConigPatch.OnQueueStatusChanged += this.SRMConigPatch_OnQueueStatusChanged;
+            var configType = Type.GetType("SongRequestManagerV2.Configuration.RequestBotConfig, SongRequestManagerV2");
+            var instanceProperty = configType.GetProperty("Instance", (BindingFlags.Static | BindingFlags.Public));
+            var instance = instanceProperty.GetValue(configType);
+            var queueStatusProperty = configType.GetProperty("RequestQueueOpen", (BindingFlags.Instance | BindingFlags.Public));
+            var queueStatus = (bool)queueStatusProperty.GetValue(instance);
+            this.SRMConigPatch_OnQueueStatusChanged(queueStatus);
         }
 
         private void SRMConigPatch_OnQueueStatusChanged(bool obj)

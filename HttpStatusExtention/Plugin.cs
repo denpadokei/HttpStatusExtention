@@ -9,7 +9,7 @@ using IPALogger = IPA.Logging.Logger;
 
 namespace HttpStatusExtention
 {
-    [Plugin(RuntimeOptions.SingleStartInit)]
+    [Plugin(RuntimeOptions.DynamicInit)]
     public class Plugin
     {
         internal static Plugin Instance { get; private set; }
@@ -54,7 +54,7 @@ namespace HttpStatusExtention
         [OnEnable]
         public void OnEnable()
         {
-            if (PluginManager.GetDisabledPluginFromId("SongRequestManagerV2") != null) {
+            if (PluginManager.GetPlugin("Song Request Manager V2") != null) {
                 _harmony.PatchAll(Assembly.GetExecutingAssembly());
             }
         }
