@@ -5,11 +5,13 @@ using HttpSiraStatus.Util;
 using HttpStatusExtention.HarmonyPathces;
 using IPA.Loader;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using UnityEngine;
 using Zenject;
 
 namespace HttpStatusExtention
@@ -24,15 +26,24 @@ namespace HttpStatusExtention
         {
             this._statusManager = statusManager;
         }
+
         public void Initialize()
         {
-            SRMConigPatch.OnQueueStatusChanged += this.SRMConigPatch_OnQueueStatusChanged;
-            var configType = Type.GetType("SongRequestManagerV2.Configuration.RequestBotConfig, SongRequestManagerV2");
-            var instanceProperty = configType.GetProperty("Instance", (BindingFlags.Static | BindingFlags.Public));
-            var instance = instanceProperty.GetValue(configType);
-            var queueStatusProperty = configType.GetProperty("RequestQueueOpen", (BindingFlags.Instance | BindingFlags.Public));
-            var queueStatus = (bool)queueStatusProperty.GetValue(instance);
-            this.SRMConigPatch_OnQueueStatusChanged(queueStatus);
+            if (PluginManager.GetPlugin("Song Request Manager V2") == null) {
+                return;
+            }
+            try {
+                SRMConigPatch.OnQueueStatusChanged += this.SRMConigPatch_OnQueueStatusChanged;
+                var configType = Type.GetType("SongRequestManagerV2.Configuration.RequestBotConfig, SongRequestManagerV2");
+                var instanceProperty = configType?.GetProperty("Instance", (BindingFlags.Static | BindingFlags.Public));
+                var instance = instanceProperty?.GetValue(configType);
+                var queueStatusProperty = configType?.GetProperty("RequestQueueOpen", (BindingFlags.Instance | BindingFlags.Public));
+                var queueStatus = (bool)queueStatusProperty?.GetValue(instance);
+                this.SRMConigPatch_OnQueueStatusChanged(queueStatus);
+            }
+            catch (Exception e) {
+                Plugin.Log.Error(e);
+            }
         }
 
         private void SRMConigPatch_OnQueueStatusChanged(bool obj)
