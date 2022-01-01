@@ -1,17 +1,10 @@
-﻿using HarmonyLib;
-using HttpSiraStatus;
+﻿using HttpSiraStatus;
 using HttpSiraStatus.Interfaces;
 using HttpSiraStatus.Util;
 using HttpStatusExtention.HarmonyPathces;
 using IPA.Loader;
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
 using Zenject;
 
 namespace HttpStatusExtention
