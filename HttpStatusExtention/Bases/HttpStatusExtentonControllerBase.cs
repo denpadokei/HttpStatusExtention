@@ -63,7 +63,7 @@ namespace HttpStatusExtention.Bases
             if (this._currentCustomBeatmapLevel != null) {
                 this.SetStarInfo(levelID);
             }
-            HMMainThreadDispatcher.instance.Enqueue(this.SongStartWait(this._currentStarSong != null && this._currentStarSongDiff != null));
+            HMMainThreadDispatcher.instance.Enqueue(this.SongStartWait());
         }
 
         private void SetStarInfo(string levelID)
@@ -115,7 +115,7 @@ namespace HttpStatusExtention.Bases
             beatmapJson["customLabel"] = currentDiffLabel;
         }
 
-        protected virtual IEnumerator SongStartWait(bool update, bool songStart = true)
+        protected virtual IEnumerator SongStartWait(bool songStart = true)
         {
             if (this._audioTimeSource == null) {
                 yield break;
@@ -128,10 +128,6 @@ namespace HttpStatusExtention.Bases
             this.statusManager.GameStatus.start = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - (long)(this._audioTimeSource.songTime * 1000f / songSpeedMul);
             //resumeの時はstartSongTime分がsongTimeに含まれているので処理不要
             if (songStart && practiceSettings != null) this.statusManager.GameStatus.start -= (long)(practiceSettings.startSongTime * 1000f / songSpeedMul);
-            update = true;
-            if (update == false) {
-                yield break;
-            }
             if (songStart) {
                 this.statusManager.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.SongStart);
             }

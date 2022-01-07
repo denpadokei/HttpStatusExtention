@@ -8,7 +8,7 @@ namespace HttpStatusExtention
     {
         private PauseController _pauseController;
 
-        private void OnGameResume() => HMMainThreadDispatcher.instance.Enqueue(this.SongStartWait(false, false));
+        private void OnGameResume() => HMMainThreadDispatcher.instance.Enqueue(this.SongStartWait(false));
 
         [Inject]
         protected void Constractor(DiContainer diContainer)
