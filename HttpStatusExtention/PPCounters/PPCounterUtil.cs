@@ -9,7 +9,7 @@ namespace HttpStatusExtention.PPCounters
     {
         static PPCounterUtil()
         {
-            slopes = new double[ppCurve.Length - 1];
+            slopes = new float[ppCurve.Length - 1];
             for (var i = 0; i < ppCurve.Length - 1; i++) {
                 var x1 = ppCurve[i].Item1;
                 var y1 = ppCurve[i].Item2;
@@ -20,12 +20,12 @@ namespace HttpStatusExtention.PPCounters
                 slopes[i] = m;
             }
         }
-        private static readonly double[] slopes;
+        private static readonly float[] slopes;
 
         /// <summary>
         /// 左がスコアのパーセンテージ、右がPP補正値
         /// </summary>
-        private static readonly (double, double)[] ppCurve = new (double, double)[]
+        private static readonly (float, float)[] ppCurve = new (float, float)[]
         {
             (0f, 0),
             (.45f, .015f),
@@ -60,7 +60,7 @@ namespace HttpStatusExtention.PPCounters
             return songsAllowingPositiveModifiers.Contains(labels.ElementAt(2).ToUpper());
         }
 
-        public static double GetPP(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty)
+        public static float GetPP(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty)
         {
             if (beatmapLevel == null) {
                 return 0;
@@ -68,7 +68,7 @@ namespace HttpStatusExtention.PPCounters
             return GetPP(beatmapLevel.levelID.Split('_').ElementAt(2), difficulty);
         }
 
-        public static double GetPP(string hash, BeatmapDifficulty difficulty)
+        public static float GetPP(string hash, BeatmapDifficulty difficulty)
         {
             try {
                 var song = ScoreDataBase.Songs[hash].AsObject;
@@ -77,15 +77,15 @@ namespace HttpStatusExtention.PPCounters
                 }
                 switch (difficulty) {
                     case BeatmapDifficulty.Easy:
-                        return song["_Easy_SoloStandard"].AsDouble;
+                        return song["_Easy_SoloStandard"].AsFloat;
                     case BeatmapDifficulty.Normal:
-                        return song["_Normal_SoloStandard"].AsDouble;
+                        return song["_Normal_SoloStandard"].AsFloat;
                     case BeatmapDifficulty.Hard:
-                        return song["_Hard_SoloStandard"].AsDouble;
+                        return song["_Hard_SoloStandard"].AsFloat;
                     case BeatmapDifficulty.Expert:
-                        return song["_Expert_SoloStandard"].AsDouble;
+                        return song["_Expert_SoloStandard"].AsFloat;
                     case BeatmapDifficulty.ExpertPlus:
-                        return song["_ExpertPlus_SoloStandard"].AsDouble;
+                        return song["_ExpertPlus_SoloStandard"].AsFloat;
                     default:
                         return 0;
                 }
@@ -96,18 +96,18 @@ namespace HttpStatusExtention.PPCounters
             }
         }
 
-        public static double CalculatePP(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty, double accuracy)
-        {
-            var rawPP = GetPP(beatmapLevel, difficulty);
-            return CalculatePP(rawPP, accuracy);
-        }
+        //public static float CalculatePP(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty, float accuracy)
+        //{
+        //    var rawPP = GetPP(beatmapLevel, difficulty);
+        //    return CalculatePP(rawPP, accuracy);
+        //}
 
-        public static double CalculatePP(double rawPP, double accuracy) => rawPP * PPPercentage(accuracy);
+        public static float CalculatePP(float rawPP, float accuracy) => rawPP * PPPercentage(accuracy);
 
-        private static double PPPercentage(double accuracy)
+        private static float PPPercentage(float accuracy)
         {
             if (accuracy >= 1)
-                return 1.5;
+                return 1.5f;
             if (accuracy <= 0)
                 return 0;
 
@@ -125,9 +125,9 @@ namespace HttpStatusExtention.PPCounters
             return Lerp(lowerScore, lowerGiven, higherScore, higherGiven, accuracy, i);
         }
 
-        private static double Lerp(double x1, double y1, double x2, double y2, double x3, int i)
+        private static float Lerp(float x1, float y1, float x2, float y2, float x3, int i)
         {
-            double m;
+            float m;
             if (slopes != null)
                 m = slopes[i];
             else

@@ -31,7 +31,7 @@ namespace HttpStatusExtention.Bases
         private BeatmapDifficulty _currentBeatmapDifficulty;
         private BeatStarSong _currentStarSong;
         private BeatStarSongDifficultyStats _currentStarSongDiff;
-        private double songRawPP;
+        private float songRawPP;
 
         public void Initialize() => this.Setup();
 
@@ -43,7 +43,7 @@ namespace HttpStatusExtention.Bases
                 this.statusManager.StatusJSON["performance"] = new JSONObject();
             }
             var jsonObject = this.statusManager.StatusJSON["performance"].AsObject;
-            jsonObject["current_pp"] = new JSONNumber(PPCounterUtil.CalculatePP(this.songRawPP, relativeScore));
+            jsonObject["current_pp"].AsFloat = PPCounterUtil.CalculatePP(this.songRawPP, relativeScore);
             this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
         }
 
@@ -117,17 +117,18 @@ namespace HttpStatusExtention.Bases
 
         protected virtual IEnumerator SongStartWait(bool update, bool songStart = true)
         {
-            if (this._audioTimeSource != null) {
-                var songTime = this._audioTimeSource.songTime;
-                yield return new WaitWhile(() => this._audioTimeSource.songTime > songTime);
-                var practiceSettings = this._currentData.practiceSettings;
-                var songSpeedMul = this._currentData.gameplayModifiers.songSpeedMul;
-                if (practiceSettings != null) songSpeedMul = practiceSettings.songSpeedMul;
-                this.statusManager.GameStatus.start = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - (long)(this._audioTimeSource.songTime * 1000f / songSpeedMul);
-                //resumeの時はstartSongTime分がsongTimeに含まれているので処理不要
-                if (songStart && practiceSettings != null) this.statusManager.GameStatus.start -= (long)(practiceSettings.startSongTime * 1000f / songSpeedMul);
-                update = true;
+            if (this._audioTimeSource == null) {
+                yield break;
             }
+            var songTime = this._audioTimeSource.songTime;
+            yield return new WaitWhile(() => this._audioTimeSource.songTime <= songTime);
+            var practiceSettings = this._currentData.practiceSettings;
+            var songSpeedMul = this._currentData.gameplayModifiers.songSpeedMul;
+            if (practiceSettings != null) songSpeedMul = practiceSettings.songSpeedMul;
+            this.statusManager.GameStatus.start = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - (long)(this._audioTimeSource.songTime * 1000f / songSpeedMul);
+            //resumeの時はstartSongTime分がsongTimeに含まれているので処理不要
+            if (songStart && practiceSettings != null) this.statusManager.GameStatus.start -= (long)(practiceSettings.startSongTime * 1000f / songSpeedMul);
+            update = true;
             if (update == false) {
                 yield break;
             }
