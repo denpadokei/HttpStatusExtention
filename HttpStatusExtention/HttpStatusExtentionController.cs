@@ -6,30 +6,28 @@ namespace HttpStatusExtention
 {
     public class HttpStatusExtentionController : HttpStatusExtentonControllerBase, IInitializable, IDisposable
     {
-        private PauseController _pauseController;
+        private IGamePause _gamePause;
 
         private void OnGameResume() => HMMainThreadDispatcher.instance.Enqueue(this.SongStartWait(false));
 
         [Inject]
-        protected void Constractor(DiContainer diContainer)
+        protected void Constractor(IGamePause gamePause)
         {
-            this._pauseController = diContainer.TryResolve<PauseController>();
+            this._gamePause = gamePause;
+            
         }
 
         protected override void Setup()
         {
-            if (this._pauseController != null) {
-                this._pauseController.didResumeEvent += this.OnGameResume;
-            }
+            this._gamePause.didResumeEvent += this.OnGameResume;
             base.Setup();
         }
 
         protected override void Dispose(bool disposing)
         {
+            
             if (disposing) {
-                if (this._pauseController != null) {
-                    this._pauseController.didResumeEvent -= this.OnGameResume;
-                }
+                this._gamePause.didResumeEvent -= this.OnGameResume;
             }
             base.Dispose(disposing);
         }
