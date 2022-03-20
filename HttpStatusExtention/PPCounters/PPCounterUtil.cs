@@ -20,31 +20,7 @@ namespace HttpStatusExtention.PPCounters
                 slopes[i] = m;
             }
         }
-        private static readonly float[] oldSlopes;
         private static readonly float[] slopes;
-
-        /// <summary>
-        /// オーバーキル用
-        /// </summary>
-        private static (float, float)[] oldPPCurve = new (float, float)[]
-        {
-            (0f, 0),
-            (.45f, .015f),
-            (.50f, .03f),
-            (.55f, .06f),
-            (.60f, .105f),
-            (.65f, .16f),
-            (.68f, .24f),
-            (.70f, .285f),
-            (.80f, .563f),
-            (.84f, .695f),
-            (.88f, .826f),
-            (.945f, 1.015f),
-            (.95f, 1.046f),
-            (1.00f, 1.12f),
-            (1.10f, 1.18f),
-            (1.14f, 1.25f)
-        };
 
         /// <summary>
         /// 左がスコアのパーセンテージ、右がPP補正値
@@ -126,61 +102,36 @@ namespace HttpStatusExtention.PPCounters
         //    return CalculatePP(rawPP, accuracy);
         //}
 
-        public static float CalculatePP(float rawPP, float accuracy, bool oldCurve) => rawPP * PPPercentage(accuracy, oldCurve);
+        public static float CalculatePP(float rawPP, float accuracy) => rawPP * PPPercentage(accuracy);
 
-        private static float PPPercentage(float accuracy, bool oldCurve)
+        private static float PPPercentage(float accuracy)
         {
-            var max = oldCurve ? 1.14f : 1f;
-            var maxReward = oldCurve ? 1.25f : 1.5f;
-
-            if (accuracy >= max)
-                return maxReward;
+            if (accuracy >= 1)
+                return 1.5f;
             if (accuracy <= 0)
                 return 0;
 
             var i = -1;
-            if (oldCurve) {
-                foreach ((var score, var given) in oldPPCurve) {
-                    if (score > accuracy)
-                        break;
-                    i++;
-                }
+            foreach ((var score, var given) in ppCurve) {
+                if (score > accuracy)
+                    break;
+                i++;
             }
-            else {
-                foreach ((var score, var given) in ppCurve) {
-                    if (score > accuracy)
-                        break;
-                    i++;
-                }
-            }
-            if (!oldCurve) {
-                var lowerScore = ppCurve[i].Item1;
-                var higherScore = ppCurve[i + 1].Item1;
-                var lowerGiven = ppCurve[i].Item2;
-                var higherGiven = ppCurve[i + 1].Item2;
-                return Lerp(lowerScore, lowerGiven, higherScore, higherGiven, accuracy, i, oldCurve);
-            }
-            else {
-                var lowerScore = oldPPCurve[i].Item1;
-                var higherScore = oldPPCurve[i + 1].Item1;
-                var lowerGiven = oldPPCurve[i].Item2;
-                var higherGiven = oldPPCurve[i + 1].Item2;
-                return Lerp(lowerScore, lowerGiven, higherScore, higherGiven, accuracy, i, oldCurve);
-            }
+
+            var lowerScore = ppCurve[i].Item1;
+            var higherScore = ppCurve[i + 1].Item1;
+            var lowerGiven = ppCurve[i].Item2;
+            var higherGiven = ppCurve[i + 1].Item2;
+            return Lerp(lowerScore, lowerGiven, higherScore, higherGiven, accuracy, i);
         }
 
-        private static float Lerp(float x1, float y1, float x2, float y2, float x3, int i, bool oldCurve)
+        private static float Lerp(float x1, float y1, float x2, float y2, float x3, int i)
         {
             float m;
-            if (!oldCurve && slopes != null) {
+            if (slopes != null)
                 m = slopes[i];
-            }
-            else if (!oldCurve && oldSlopes != null) {
-                m = oldSlopes[i];
-            }
-            else {
+            else
                 m = (y2 - y1) / (x2 - x1);
-            }
             return m * (x3 - x1) + y1;
         }
     }
