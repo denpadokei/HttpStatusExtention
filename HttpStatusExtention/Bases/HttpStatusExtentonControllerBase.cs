@@ -43,7 +43,7 @@ namespace HttpStatusExtention.Bases
                 this.statusManager.StatusJSON["performance"] = new JSONObject();
             }
             var jsonObject = this.statusManager.StatusJSON["performance"].AsObject;
-            jsonObject["current_pp"].AsFloat = PPCounterUtil.CalculatePP(this.songRawPP, relativeScore);
+            jsonObject["current_pp"].AsFloat = PPCounterUtil.CalculatePP(this.songRawPP, relativeScore, PPCounterUtil.AllowedPositiveModifiers(this._currentData.difficultyBeatmap.level.levelID));
             this.statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
         }
 
@@ -84,7 +84,7 @@ namespace HttpStatusExtention.Bases
                         beatmapJson["pp"] = new JSONNumber(this.songRawPP * 1.12);
                     }
                     else {
-                        beatmapJson["pp"] = new JSONNumber(PPCounterUtil.CalculatePP(this.songRawPP, multiplier));
+                        beatmapJson["pp"] = new JSONNumber(PPCounterUtil.CalculatePP(this.songRawPP, multiplier, PPCounterUtil.AllowedPositiveModifiers(levelID)));
                     }
                 }
                 beatmapJson["star"] = new JSONNumber(this._currentStarSongDiff.star);
