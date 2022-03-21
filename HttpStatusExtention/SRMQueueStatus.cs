@@ -41,23 +41,23 @@ namespace HttpStatusExtention
 
         private void SRMConigPatch_OnQueueStatusChanged(bool obj)
         {
-            _statusManager.OtherJSON["srm_queue_status"] = new JSONBool(obj);
-            _statusManager.EmitStatusUpdate(ChangedProperty.Other, BeatSaberEvent.Other);
+            this._statusManager.OtherJSON["srm_queue_status"] = new JSONBool(obj);
+            this._statusManager.EmitStatusUpdate(ChangedProperty.Other, BeatSaberEvent.Other);
         }
         protected virtual void Dispose(bool disposing)
         {
-            if (!disposedValue) {
+            if (!this.disposedValue) {
                 if (disposing) {
                     // TODO: マネージド状態を破棄します (マネージド オブジェクト)
                     SRMConigPatch.OnQueueStatusChanged -= this.SRMConigPatch_OnQueueStatusChanged;
                 }
-                disposedValue = true;
+                this.disposedValue = true;
             }
         }
         public void Dispose()
         {
             // このコードを変更しないでください。クリーンアップ コードを 'Dispose(bool disposing)' メソッドに記述します
-            Dispose(disposing: true);
+            this.Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
     }

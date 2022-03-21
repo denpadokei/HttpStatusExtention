@@ -2,11 +2,10 @@
 using HttpSiraStatus.Interfaces;
 using HttpSiraStatus.Util;
 using HttpStatusExtention.DataBases;
-using HttpStatusExtention.Extentions;
+using HttpStatusExtention.Interfaces;
+using HttpStatusExtention.Models;
 using HttpStatusExtention.PPCounters;
-using HttpStatusExtention.SongDataCores;
 using SongCore;
-using SongDataCore.BeatStar;
 using System;
 using System.Collections;
 using System.Linq;
@@ -26,16 +25,25 @@ namespace HttpStatusExtention.Bases
         private readonly IAudioTimeSource _audioTimeSource;
         [Inject]
         private readonly GameplayCoreSceneSetupData _currentData;
+        [Inject]
+        private readonly ISongDataUtil _songDataUtil;
 
         private CustomPreviewBeatmapLevel _currentCustomBeatmapLevel;
         private BeatmapDifficulty _currentBeatmapDifficulty;
-        private BeatStarSong _currentStarSong;
-        private BeatStarSongDifficultyStats _currentStarSongDiff;
+        private BeatDataCharacteristics _currentBeatmapCharacteristics;
+        private BeatSongData _currentStarSong;
+        private BeatSongDataDifficultyStats _currentStarSongDiff;
         private float songRawPP;
 
-        public void Initialize() => this.Setup();
+        public void Initialize()
+        {
+            this.Setup();
+        }
 
-        private void SendPP() => this.SendPP(this.relativeScoreAndImmediateRankCounter.relativeScore);
+        private void SendPP()
+        {
+            this.SendPP(this.relativeScoreAndImmediateRankCounter.relativeScore);
+        }
 
         private void SendPP(float relativeScore)
         {
@@ -55,6 +63,8 @@ namespace HttpStatusExtention.Bases
                 this.relativeScoreAndImmediateRankCounter.relativeScoreOrImmediateRankDidChangeEvent += this.RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent;
             }
             var beatmapLevel = this._currentData.difficultyBeatmap.level;
+            var key = this._currentData.difficultyBeatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.characteristicNameLocalizationKey;
+            this._currentBeatmapCharacteristics = Enum.GetValues(typeof(BeatDataCharacteristics)).OfType<BeatDataCharacteristics>().FirstOrDefault(x => x.GetDescription() == key);
             this._currentBeatmapDifficulty = this._currentData.difficultyBeatmap.difficulty;
             var levelID = beatmapLevel.levelID;
 
@@ -70,8 +80,8 @@ namespace HttpStatusExtention.Bases
         {
             this.songRawPP = ScoreDataBase.Instance.Init ? PPCounterUtil.GetPP(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty) : 0;
             this.SetCustomLabel(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty);
-            this._currentStarSong = SongDataCoreUtil.GetBeatStarSong(this._currentCustomBeatmapLevel);
-            this._currentStarSongDiff = SongDataCoreUtil.GetBeatStarSongDiffculityStats(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty);
+            this._currentStarSong = this._songDataUtil.GetBeatStarSong(this._currentCustomBeatmapLevel);
+            this._currentStarSongDiff = this._songDataUtil.GetBeatStarSongDiffculityStats(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty, this._currentBeatmapCharacteristics);
             if (this.statusManager.StatusJSON["beatmap"] == null) {
                 this.statusManager.StatusJSON["beatmap"] = new JSONObject();
             }
@@ -89,13 +99,16 @@ namespace HttpStatusExtention.Bases
                 }
                 beatmapJson["star"] = new JSONNumber(this._currentStarSongDiff.star);
                 beatmapJson["downloadCount"] = new JSONNumber(this._currentStarSong.downloadCount);
-                beatmapJson["upVotes"] = new JSONNumber(this._currentStarSong.upVotes);
-                beatmapJson["downVotes"] = new JSONNumber(this._currentStarSong.downVotes);
+                beatmapJson["upVotes"] = new JSONNumber(this._currentStarSong.upvotes);
+                beatmapJson["downVotes"] = new JSONNumber(this._currentStarSong.downvotes);
                 beatmapJson["rating"] = new JSONNumber(this._currentStarSong.rating);
             }
         }
 
-        private void RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent() => this.SendPP();
+        private void RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent()
+        {
+            this.SendPP();
+        }
 
         private void SetCustomLabel(CustomPreviewBeatmapLevel beatmap, BeatmapDifficulty diff)
         {
@@ -124,10 +137,16 @@ namespace HttpStatusExtention.Bases
             yield return new WaitWhile(() => this._audioTimeSource.songTime <= songTime);
             var practiceSettings = this._currentData.practiceSettings;
             var songSpeedMul = this._currentData.gameplayModifiers.songSpeedMul;
-            if (practiceSettings != null) songSpeedMul = practiceSettings.songSpeedMul;
+            if (practiceSettings != null) {
+                songSpeedMul = practiceSettings.songSpeedMul;
+            }
+
             this.statusManager.GameStatus.start = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - (long)(this._audioTimeSource.songTime * 1000f / songSpeedMul);
             //resumeの時はstartSongTime分がsongTimeに含まれているので処理不要
-            if (songStart && practiceSettings != null) this.statusManager.GameStatus.start -= (long)(practiceSettings.startSongTime * 1000f / songSpeedMul);
+            if (songStart && practiceSettings != null) {
+                this.statusManager.GameStatus.start -= (long)(practiceSettings.startSongTime * 1000f / songSpeedMul);
+            }
+
             if (songStart) {
                 this.statusManager.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.SongStart);
             }

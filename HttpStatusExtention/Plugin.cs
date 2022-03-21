@@ -1,7 +1,6 @@
 ﻿using HarmonyLib;
 using HttpStatusExtention.DataBases;
-using HttpStatusExtention.Installer;
-using HttpStatusExtention.SongDataCores;
+using HttpStatusExtention.Installers;
 using IPA;
 using IPA.Loader;
 using SiraUtil.Zenject;
@@ -32,6 +31,7 @@ namespace HttpStatusExtention
             _harmony = new Harmony(HARMONY_ID);
             zenjector.Install<HttpStatusExtentionInstaller>(Location.Player);
             zenjector.Install<HttpStatusExtentionMenuAndGameInstaller>(Location.Menu | Location.Player);
+            zenjector.Install<HttpStatusExxtentionAppInstaller>(Location.App);
             _ = ScoreDataBase.Instance.Initialize();
         }
 
@@ -48,17 +48,24 @@ namespace HttpStatusExtention
         #endregion
 
         [OnStart]
-        public void OnApplicationStart() => Log.Debug("OnApplicationStart");
+        public void OnApplicationStart()
+        {
+            Log.Debug("OnApplicationStart");
+        }
 
         [OnExit]
-        public void OnApplicationQuit() => Log.Debug("OnApplicationQuit");
+        public void OnApplicationQuit()
+        {
+            Log.Debug("OnApplicationQuit");
+        }
+
         [OnEnable]
         public void OnEnable()
         {
             if (PluginManager.GetPlugin("Song Request Manager V2") != null) {
                 _harmony.PatchAll(Assembly.GetExecutingAssembly());
             }
-            HMMainThreadDispatcher.instance.Enqueue(SongDataCoreUtil.Initialize());
+            //HMMainThreadDispatcher.instance.Enqueue(SongDataCoreUtil.Initialize());
         }
 
         [OnDisable]

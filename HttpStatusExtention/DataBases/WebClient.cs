@@ -32,9 +32,20 @@ namespace HttpStatusExtention.DataBases
             this._content = body;
         }
 
-        public byte[] ContentToBytes() => this._content;
-        public string ContentToString() => Encoding.UTF8.GetString(this._content);
-        public JSONNode ConvertToJsonNode() => JSONNode.Parse(this.ContentToString());
+        public byte[] ContentToBytes()
+        {
+            return this._content;
+        }
+
+        public string ContentToString()
+        {
+            return Encoding.UTF8.GetString(this._content);
+        }
+
+        public JSONNode ConvertToJsonNode()
+        {
+            return JSONNode.Parse(this.ContentToString());
+        }
     }
 
     internal static class WebClient
@@ -143,7 +154,9 @@ namespace HttpStatusExtention.DataBases
                 } while (resp?.StatusCode != HttpStatusCode.NotFound && resp?.IsSuccessStatusCode != true && retryCount <= RETRY_COUNT);
 
 
-                if (token.IsCancellationRequested) throw new TaskCanceledException();
+                if (token.IsCancellationRequested) {
+                    throw new TaskCanceledException();
+                }
 
                 using (var memoryStream = new MemoryStream())
                 using (var stream = await resp.Content.ReadAsStreamAsync().ConfigureAwait(false)) {
@@ -157,10 +170,12 @@ namespace HttpStatusExtention.DataBases
                     progress?.Report(0);
 
                     while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) > 0) {
-                        if (token.IsCancellationRequested) throw new TaskCanceledException();
+                        if (token.IsCancellationRequested) {
+                            throw new TaskCanceledException();
+                        }
 
                         if (contentLength != null) {
-                            progress?.Report((double)totalRead / (double)contentLength);
+                            progress?.Report(totalRead / (double)contentLength);
                         }
 
                         await memoryStream.WriteAsync(buffer, 0, bytesRead).ConfigureAwait(false);

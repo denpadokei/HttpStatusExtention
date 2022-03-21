@@ -26,7 +26,7 @@ namespace HttpStatusExtention.PPCounters
         /// <summary>
         /// オーバーキル用
         /// </summary>
-        private static (float, float)[] oldPPCurve = new (float, float)[]
+        private static readonly (float, float)[] oldPPCurve = new (float, float)[]
         {
             (0f, 0),
             (.45f, .015f),
@@ -126,30 +126,40 @@ namespace HttpStatusExtention.PPCounters
         //    return CalculatePP(rawPP, accuracy);
         //}
 
-        public static float CalculatePP(float rawPP, float accuracy, bool oldCurve) => rawPP * PPPercentage(accuracy, oldCurve);
+        public static float CalculatePP(float rawPP, float accuracy, bool oldCurve)
+        {
+            return rawPP * PPPercentage(accuracy, oldCurve);
+        }
 
         private static float PPPercentage(float accuracy, bool oldCurve)
         {
             var max = oldCurve ? 1.14f : 1f;
             var maxReward = oldCurve ? 1.25f : 1.5f;
 
-            if (accuracy >= max)
+            if (accuracy >= max) {
                 return maxReward;
-            if (accuracy <= 0)
+            }
+
+            if (accuracy <= 0) {
                 return 0;
+            }
 
             var i = -1;
             if (oldCurve) {
                 foreach ((var score, var given) in oldPPCurve) {
-                    if (score > accuracy)
+                    if (score > accuracy) {
                         break;
+                    }
+
                     i++;
                 }
             }
             else {
                 foreach ((var score, var given) in ppCurve) {
-                    if (score > accuracy)
+                    if (score > accuracy) {
                         break;
+                    }
+
                     i++;
                 }
             }
