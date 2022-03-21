@@ -35,11 +35,14 @@ namespace HttpStatusExtention
 
         private void SendPP(float relativeScore)
         {
+            if (this._songRawPP == 0) {
+                return;
+            }
             if (this._statusManager.StatusJSON["performance"] == null) {
                 this._statusManager.StatusJSON["performance"] = new JSONObject();
             }
             var jsonObject = this._statusManager.StatusJSON["performance"].AsObject;
-            jsonObject["current_pp"].AsFloat = PPCounterUtil.CalculatePP(this.songRawPP, relativeScore, PPCounterUtil.AllowedPositiveModifiers(this._levelID));
+            jsonObject["current_pp"].AsFloat = PPCounterUtil.CalculatePP(this._songRawPP, relativeScore, PPCounterUtil.AllowedPositiveModifiers(this._levelID));
             this._statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
         }
 
@@ -64,7 +67,13 @@ namespace HttpStatusExtention
 
         private void SetStarInfo(string levelID)
         {
-            this.songRawPP = (float)this._songDataUtil.GetPP(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty, this._currentBeatmapCharacteristics);
+            var multiplier = this._statusManager.GameStatus.modifierMultiplier;
+            if (multiplier != 1 && !PPCounterUtil.AllowedPositiveModifiers(levelID)) {
+                this._songRawPP = 0;
+            }
+            else {
+                this._songRawPP = (float)this._songDataUtil.GetPP(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty, this._currentBeatmapCharacteristics);
+            }
             this.SetCustomLabel(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty, this._currentBeatmapCharacteristics);
             this._currentStarSong = this._songDataUtil.GetBeatStarSong(this._currentCustomBeatmapLevel);
             this._currentStarSongDiff = this._songDataUtil.GetBeatStarSongDiffculityStats(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty, this._currentBeatmapCharacteristics);
@@ -74,18 +83,12 @@ namespace HttpStatusExtention
             var beatmapJson = this._statusManager.StatusJSON["beatmap"].AsObject;
 
             if (this._currentStarSong != null && this._currentStarSongDiff != null) {
-                var multiplier = this._statusManager.GameStatus.modifierMultiplier;
-                if (multiplier != 1 && !PPCounterUtil.AllowedPositiveModifiers(levelID)) {
-                    beatmapJson["pp"] = 0;
-                }
-                else {
-                    beatmapJson["pp"] = new JSONNumber(PPCounterUtil.CalculatePP(this.songRawPP, multiplier, PPCounterUtil.AllowedPositiveModifiers(levelID)));
-                }
-                beatmapJson["star"] = new JSONNumber(this._currentStarSongDiff.star);
-                beatmapJson["downloadCount"] = new JSONNumber(this._currentStarSong.downloadCount);
-                beatmapJson["upVotes"] = new JSONNumber(this._currentStarSong.upvotes);
-                beatmapJson["downVotes"] = new JSONNumber(this._currentStarSong.downvotes);
-                beatmapJson["rating"] = new JSONNumber(this._currentStarSong.rating);
+                beatmapJson["pp"] = new JSONNumber(PPCounterUtil.CalculatePP(this._songRawPP, multiplier, PPCounterUtil.AllowedPositiveModifiers(levelID)));
+                beatmapJson["star"] = new JSONNumber(this._currentStarSongDiff.Star);
+                beatmapJson["downloadCount"] = new JSONNumber(this._currentStarSong.DownloadCount);
+                beatmapJson["upVotes"] = new JSONNumber(this._currentStarSong.Upvotes);
+                beatmapJson["downVotes"] = new JSONNumber(this._currentStarSong.Downvotes);
+                beatmapJson["rating"] = new JSONNumber(this._currentStarSong.Rating);
             }
         }
 
@@ -153,7 +156,7 @@ namespace HttpStatusExtention
         private BeatDataCharacteristics _currentBeatmapCharacteristics;
         private BeatSongData _currentStarSong;
         private BeatSongDataDifficultyStats _currentStarSongDiff;
-        private float songRawPP;
+        private float _songRawPP;
         private string _levelID;
         #endregion
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*

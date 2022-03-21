@@ -7,35 +7,35 @@ namespace HttpStatusExtention.PPCounters
     {
         static PPCounterUtil()
         {
-            oldSlopes = new float[oldPPCurve.Length - 1];
-            for (var i = 0; i < oldPPCurve.Length - 1; i++) {
-                var x1 = oldPPCurve[i].Item1;
-                var y1 = oldPPCurve[i].Item2;
-                var x2 = oldPPCurve[i + 1].Item1;
-                var y2 = oldPPCurve[i + 1].Item2;
+            s_oldSlopes = new float[s_oldPPCurve.Length - 1];
+            for (var i = 0; i < s_oldPPCurve.Length - 1; i++) {
+                var x1 = s_oldPPCurve[i].Item1;
+                var y1 = s_oldPPCurve[i].Item2;
+                var x2 = s_oldPPCurve[i + 1].Item1;
+                var y2 = s_oldPPCurve[i + 1].Item2;
 
                 var m = (y2 - y1) / (x2 - x1);
-                oldSlopes[i] = m;
+                s_oldSlopes[i] = m;
             }
 
-            slopes = new float[ppCurve.Length - 1];
-            for (var i = 0; i < ppCurve.Length - 1; i++) {
-                var x1 = ppCurve[i].Item1;
-                var y1 = ppCurve[i].Item2;
-                var x2 = ppCurve[i + 1].Item1;
-                var y2 = ppCurve[i + 1].Item2;
+            s_slopes = new float[s_ppCurve.Length - 1];
+            for (var i = 0; i < s_ppCurve.Length - 1; i++) {
+                var x1 = s_ppCurve[i].Item1;
+                var y1 = s_ppCurve[i].Item2;
+                var x2 = s_ppCurve[i + 1].Item1;
+                var y2 = s_ppCurve[i + 1].Item2;
 
                 var m = (y2 - y1) / (x2 - x1);
-                slopes[i] = m;
+                s_slopes[i] = m;
             }
         }
-        private static readonly float[] oldSlopes;
-        private static readonly float[] slopes;
+        private static readonly float[] s_oldSlopes;
+        private static readonly float[] s_slopes;
 
         /// <summary>
         /// オーバーキル用
         /// </summary>
-        private static readonly (float, float)[] oldPPCurve = new (float, float)[]
+        private static readonly (float, float)[] s_oldPPCurve = new (float, float)[]
         {
             (0f, 0),
             (.45f, .015f),
@@ -58,7 +58,7 @@ namespace HttpStatusExtention.PPCounters
         /// <summary>
         /// 左がスコアのパーセンテージ、右がPP補正値
         /// </summary>
-        private static readonly (float, float)[] ppCurve = new (float, float)[]
+        private static readonly (float, float)[] s_ppCurve = new (float, float)[]
         {
             (0f, 0),
             (.45f, .015f),
@@ -80,7 +80,7 @@ namespace HttpStatusExtention.PPCounters
             (.99f, 1.39f),
             (1, 1.5f),
         };
-        private static readonly HashSet<string> songsAllowingPositiveModifiers = new HashSet<string> {
+        private static readonly HashSet<string> s_songsAllowingPositiveModifiers = new HashSet<string> {
             "2FDDB136BDA7F9E29B4CB6621D6D8E0F8A43B126", // Overkill Nuketime
             "27FCBAB3FB731B16EABA14A5D039EEFFD7BD44C9" // Overkill Kry
         };
@@ -90,7 +90,7 @@ namespace HttpStatusExtention.PPCounters
             if (labels.Length != 3) {
                 return true;
             }
-            return songsAllowingPositiveModifiers.Contains(labels.ElementAt(2).Substring(0, 40).ToUpper());
+            return s_songsAllowingPositiveModifiers.Contains(labels.ElementAt(2).Substring(0, 40).ToUpper());
         }
 
         public static float CalculatePP(float rawPP, float accuracy, bool oldCurve)
@@ -113,7 +113,7 @@ namespace HttpStatusExtention.PPCounters
 
             var i = -1;
             if (oldCurve) {
-                foreach ((var score, var given) in oldPPCurve) {
+                foreach ((var score, var given) in s_oldPPCurve) {
                     if (score > accuracy) {
                         break;
                     }
@@ -122,7 +122,7 @@ namespace HttpStatusExtention.PPCounters
                 }
             }
             else {
-                foreach ((var score, var given) in ppCurve) {
+                foreach ((var score, var given) in s_ppCurve) {
                     if (score > accuracy) {
                         break;
                     }
@@ -131,17 +131,17 @@ namespace HttpStatusExtention.PPCounters
                 }
             }
             if (!oldCurve) {
-                var lowerScore = ppCurve[i].Item1;
-                var higherScore = ppCurve[i + 1].Item1;
-                var lowerGiven = ppCurve[i].Item2;
-                var higherGiven = ppCurve[i + 1].Item2;
+                var lowerScore = s_ppCurve[i].Item1;
+                var higherScore = s_ppCurve[i + 1].Item1;
+                var lowerGiven = s_ppCurve[i].Item2;
+                var higherGiven = s_ppCurve[i + 1].Item2;
                 return Lerp(lowerScore, lowerGiven, higherScore, higherGiven, accuracy, i, oldCurve);
             }
             else {
-                var lowerScore = oldPPCurve[i].Item1;
-                var higherScore = oldPPCurve[i + 1].Item1;
-                var lowerGiven = oldPPCurve[i].Item2;
-                var higherGiven = oldPPCurve[i + 1].Item2;
+                var lowerScore = s_oldPPCurve[i].Item1;
+                var higherScore = s_oldPPCurve[i + 1].Item1;
+                var lowerGiven = s_oldPPCurve[i].Item2;
+                var higherGiven = s_oldPPCurve[i + 1].Item2;
                 return Lerp(lowerScore, lowerGiven, higherScore, higherGiven, accuracy, i, oldCurve);
             }
         }
@@ -149,11 +149,11 @@ namespace HttpStatusExtention.PPCounters
         private static float Lerp(float x1, float y1, float x2, float y2, float x3, int i, bool oldCurve)
         {
             float m;
-            if (!oldCurve && slopes != null) {
-                m = slopes[i];
+            if (!oldCurve && s_slopes != null) {
+                m = s_slopes[i];
             }
-            else if (!oldCurve && oldSlopes != null) {
-                m = oldSlopes[i];
+            else if (!oldCurve && s_oldSlopes != null) {
+                m = s_oldSlopes[i];
             }
             else {
                 m = (y2 - y1) / (x2 - x1);

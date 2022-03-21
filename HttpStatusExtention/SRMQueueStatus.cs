@@ -12,7 +12,7 @@ namespace HttpStatusExtention
     public class SRMQueueStatus : IInitializable, IDisposable
     {
         private IStatusManager _statusManager;
-        private bool disposedValue;
+        private bool _disposedValue;
 
         [Inject]
         public void Constractor(IStatusManager statusManager)
@@ -46,12 +46,12 @@ namespace HttpStatusExtention
         }
         protected virtual void Dispose(bool disposing)
         {
-            if (!this.disposedValue) {
+            if (!this._disposedValue) {
                 if (disposing) {
                     // TODO: マネージド状態を破棄します (マネージド オブジェクト)
                     SRMConigPatch.OnQueueStatusChanged -= this.SRMConigPatch_OnQueueStatusChanged;
                 }
-                this.disposedValue = true;
+                this._disposedValue = true;
             }
         }
         public void Dispose()

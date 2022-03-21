@@ -8,12 +8,12 @@ using IPALogger = IPA.Logging.Logger;
 
 namespace HttpStatusExtention
 {
-    [Plugin(RuntimeOptions.DynamicInit)]
+    [Plugin(RuntimeOptions.SingleStartInit)]
     public class Plugin
     {
         internal static Plugin Instance { get; private set; }
         internal static IPALogger Log { get; private set; }
-        private static Harmony _harmony;
+        private static Harmony s_harmony;
         public const string HARMONY_ID = "HttpStatusExtention.com.github.denpadokei";
 
         [Init]
@@ -27,23 +27,11 @@ namespace HttpStatusExtention
             Instance = this;
             Log = logger;
             Log.Info("HttpStatusExtention initialized.");
-            _harmony = new Harmony(HARMONY_ID);
+            s_harmony = new Harmony(HARMONY_ID);
             zenjector.Install<HttpStatusExtentionInstaller>(Location.Player);
             zenjector.Install<HttpStatusExtentionMenuAndGameInstaller>(Location.Menu | Location.Player);
             zenjector.Install<HttpStatusExxtentionAppInstaller>(Location.App);
         }
-
-        #region BSIPA Config
-        //Uncomment to use BSIPA's config
-        /*
-        [Init]
-        public void InitWithConfig(Config conf)
-        {
-            Configuration.PluginConfig.Instance = conf.Generated<Configuration.PluginConfig>();
-            Log.Debug("Config loaded");
-        }
-        */
-        #endregion
 
         [OnStart]
         public void OnApplicationStart()
@@ -61,15 +49,14 @@ namespace HttpStatusExtention
         public void OnEnable()
         {
             if (PluginManager.GetPlugin("Song Request Manager V2") != null) {
-                _harmony.PatchAll(Assembly.GetExecutingAssembly());
+                s_harmony.PatchAll(Assembly.GetExecutingAssembly());
             }
-            //HMMainThreadDispatcher.instance.Enqueue(SongDataCoreUtil.Initialize());
         }
 
         [OnDisable]
         public void OnDisable()
         {
-            _harmony.UnpatchSelf();
+            s_harmony.UnpatchSelf();
         }
     }
 }
