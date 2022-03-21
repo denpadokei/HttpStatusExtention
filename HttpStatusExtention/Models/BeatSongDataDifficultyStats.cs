@@ -7,6 +7,7 @@
         public int bombs { get; set; }
         public int notes { get; set; }
         public int obstacles { get; set; }
+        public bool ranked { get; set; }
         public BeatDataCharacteristics Characteristics { get; set; }
         public BeatMapDifficulty Difficulty { get; set; }
         public RecomendMod Mods { get; set; }

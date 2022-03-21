@@ -43,6 +43,7 @@ namespace HttpStatusExtention.SongDetailsCaches
                     diffData.obstacles = (int)diff.obstacles;
                     diffData.pp = diff.approximatePpValue;
                     diffData.Mods = SongDetailsConveter.ConvertToRecomendMod(diff.mods);
+                    diffData.ranked = diff.ranked;
                     dic.TryAdd(diffData.Difficulty, diffData);
                 }
                 diffData.Characteristics = SongDetailsConveter.ConvertToBeatDataCharacteristics(chara.Key);
@@ -124,7 +125,8 @@ namespace HttpStatusExtention.SongDetailsCaches
             if (!this._init) {
                 return false;
             }
-            return this.GetPP(beatmapLevel, beatmapDifficulty, beatDataCharacteristics) != 0;
+            var song = GetBeatStarSong(beatmapLevel);
+            return this.GetBeatStarSongDiffculityStats(song, beatmapDifficulty, beatDataCharacteristics).ranked;
         }
 
         public bool IsRank(string levelID, BeatmapDifficulty beatmapDifficulty, BeatDataCharacteristics beatDataCharacteristics)
