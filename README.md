@@ -4,7 +4,7 @@ HttpStatusでは表示できない情報を追加で送信します。
 ## 依存MOD  
 SiraUtil  
 [HttpSiraStatus](https://github.com/denpadokei/beatsaber-http-status)  
-SongDataCore  
+SongDetailsCache  
 SongCore  
   
 # 注意  
