@@ -17,7 +17,6 @@ namespace HttpStatusExtention
         protected void Constractor(IGamePause gamePause)
         {
             this._gamePause = gamePause;
-
         }
 
         protected override void Setup()

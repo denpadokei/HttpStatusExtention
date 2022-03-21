@@ -101,12 +101,12 @@ namespace HttpStatusExtention.SongDetailsCaches
             return this.GetBeatStarSongDiffculityStats(song, difficulty, beatDataCharacteristics);
         }
 
-        public double GetPP(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty)
+        public double GetPP(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty, BeatDataCharacteristics beatDataCharacteristics)
         {
             if (!this._init) {
                 return 0;
             }
-            var song = this.GetBeatStarSongDiffculityStats(beatmapLevel, difficulty);
+            var song = this.GetBeatStarSongDiffculityStats(beatmapLevel, difficulty, beatDataCharacteristics);
             return song.pp;
         }
 
@@ -119,22 +119,22 @@ namespace HttpStatusExtention.SongDetailsCaches
             });
         }
 
-        public bool IsRank(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty beatmapDifficulty)
+        public bool IsRank(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty beatmapDifficulty, BeatDataCharacteristics beatDataCharacteristics)
         {
             if (!this._init) {
                 return false;
             }
-            return this.GetPP(beatmapLevel, beatmapDifficulty) != 0;
+            return this.GetPP(beatmapLevel, beatmapDifficulty, beatDataCharacteristics) != 0;
         }
 
-        public bool IsRank(string levelID, BeatmapDifficulty beatmapDifficulty)
+        public bool IsRank(string levelID, BeatmapDifficulty beatmapDifficulty, BeatDataCharacteristics beatDataCharacteristics)
         {
             var prevMap = SongCore.Loader.GetLevelById(levelID);
             if (prevMap == null) {
                 return false;
             }
             if (prevMap is CustomPreviewBeatmapLevel custom) {
-                return this.IsRank(custom, beatmapDifficulty);
+                return this.IsRank(custom, beatmapDifficulty, beatDataCharacteristics);
             }
             else {
                 return false;

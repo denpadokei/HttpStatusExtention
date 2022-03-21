@@ -1,4 +1,5 @@
 ﻿using HttpStatusExtention.DataBases;
+using HttpStatusExtention.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,17 @@ namespace HttpStatusExtention.PPCounters
     {
         static PPCounterUtil()
         {
+            oldSlopes = new float[oldPPCurve.Length - 1];
+            for (var i = 0; i < oldPPCurve.Length - 1; i++) {
+                var x1 = oldPPCurve[i].Item1;
+                var y1 = oldPPCurve[i].Item2;
+                var x2 = oldPPCurve[i + 1].Item1;
+                var y2 = oldPPCurve[i + 1].Item2;
+
+                var m = (y2 - y1) / (x2 - x1);
+                oldSlopes[i] = m;
+            }
+
             slopes = new float[ppCurve.Length - 1];
             for (var i = 0; i < ppCurve.Length - 1; i++) {
                 var x1 = ppCurve[i].Item1;
@@ -84,15 +96,7 @@ namespace HttpStatusExtention.PPCounters
             return songsAllowingPositiveModifiers.Contains(labels.ElementAt(2).ToUpper());
         }
 
-        public static float GetPP(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty)
-        {
-            if (beatmapLevel == null) {
-                return 0;
-            }
-            return GetPP(beatmapLevel.levelID.Split('_').ElementAt(2), difficulty);
-        }
-
-        public static float GetPP(string hash, BeatmapDifficulty difficulty)
+        public static float GetPP(string hash, BeatmapDifficulty difficulty, BeatDataCharacteristics beatDataCharacteristics)
         {
             try {
                 var song = ScoreDataBase.Songs[hash].AsObject;

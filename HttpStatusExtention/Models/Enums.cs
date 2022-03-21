@@ -6,17 +6,17 @@ namespace HttpStatusExtention.Models
     public enum BeatDataCharacteristics
     {
         Unkown,
-        [Description("LEVEL_STANDARD")]
+        [Description("Standard")]
         Standard,
-        [Description("LEVEL_ONE_SABER")]
+        [Description("OneSaber")]
         OneSaber,
-        [Description("LEVEL_NO_ARROWS")]
+        [Description("NoArrows")]
         NoArrows,
         [Description("Lightshow")]
         Lightshow,
-        [Description("LEVEL_90DEGREE")]
+        [Description("90Degree")]
         Degree90,
-        [Description("LEVEL_360DEGREE")]
+        [Description("360Degree")]
         Degree360,
         [Description("Lawless")]
         Lawless

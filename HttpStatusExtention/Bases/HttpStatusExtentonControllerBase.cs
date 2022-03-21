@@ -63,7 +63,7 @@ namespace HttpStatusExtention.Bases
                 this.relativeScoreAndImmediateRankCounter.relativeScoreOrImmediateRankDidChangeEvent += this.RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent;
             }
             var beatmapLevel = this._currentData.difficultyBeatmap.level;
-            var key = this._currentData.difficultyBeatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.characteristicNameLocalizationKey;
+            var key = this._currentData.difficultyBeatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
             this._currentBeatmapCharacteristics = Enum.GetValues(typeof(BeatDataCharacteristics)).OfType<BeatDataCharacteristics>().FirstOrDefault(x => x.GetDescription() == key);
             this._currentBeatmapDifficulty = this._currentData.difficultyBeatmap.difficulty;
             var levelID = beatmapLevel.levelID;
@@ -78,8 +78,8 @@ namespace HttpStatusExtention.Bases
 
         private void SetStarInfo(string levelID)
         {
-            this.songRawPP = ScoreDataBase.Instance.Init ? PPCounterUtil.GetPP(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty) : 0;
-            this.SetCustomLabel(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty);
+            this.songRawPP = (float)this._songDataUtil.GetPP(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty, this._currentBeatmapCharacteristics); //ScoreDataBase.Instance.Init ? PPCounterUtil.GetPP(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty) : 0;
+            this.SetCustomLabel(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty, this._currentBeatmapCharacteristics);
             this._currentStarSong = this._songDataUtil.GetBeatStarSong(this._currentCustomBeatmapLevel);
             this._currentStarSongDiff = this._songDataUtil.GetBeatStarSongDiffculityStats(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty, this._currentBeatmapCharacteristics);
             if (this.statusManager.StatusJSON["beatmap"] == null) {
@@ -110,14 +110,18 @@ namespace HttpStatusExtention.Bases
             this.SendPP();
         }
 
-        private void SetCustomLabel(CustomPreviewBeatmapLevel beatmap, BeatmapDifficulty diff)
+        private void SetCustomLabel(CustomPreviewBeatmapLevel beatmap, BeatmapDifficulty diff, BeatDataCharacteristics beatDataCharacteristics)
         {
             if (beatmap == null) {
                 return;
             }
             var songData = Collections.RetrieveExtraSongData(SongCore.Utilities.Hashing.GetCustomLevelHash(beatmap));
-            var diffData = songData._difficulties?.FirstOrDefault(x => x._difficulty == diff);
-            var currentDiffLabel = diffData._difficultyLabel;
+            foreach (var tmp in songData._difficulties) {
+                Plugin.Log.Debug(tmp._beatmapCharacteristicName);
+                Plugin.Log.Debug($"{tmp._difficulty}");
+            }
+            var diffData = songData._difficulties?.FirstOrDefault(x => x._beatmapCharacteristicName == beatDataCharacteristics.GetDescription() && x._difficulty == diff);
+            var currentDiffLabel = diffData?._difficultyLabel;
             if (string.IsNullOrEmpty(currentDiffLabel)) {
                 return;
             }
