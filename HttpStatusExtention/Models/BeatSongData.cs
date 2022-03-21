@@ -5,23 +5,23 @@ namespace HttpStatusExtention.Models
 {
     public class BeatSongData
     {
-        public float bpm { get; set; }
-        public int downloadCount { get; set; }
-        public int upvotes { get; set; }
-        public int downvotes { get; set; }
-        public int songDuration { get; set; }
-        public int diffOffset { get; set; }
-        public int diffCount { get; set; }
-        public RankStatus rankedStatus { get; set; }
-        public float rating { get; set; }
-        public DateTime uploadTime { get; set; }
-        public string key { get; set; }
-        public string hash { get; set; }
-        public string songName { get; set; }
-        public string songAuthorName { get; set; }
-        public string levelAuthorName { get; set; }
-        public string coverURL { get; set; }
-        public string uploaderName { get; set; }
-        public ConcurrentDictionary<BeatDataCharacteristics, ConcurrentDictionary<BeatMapDifficulty, BeatSongDataDifficultyStats>> characteristics { get; set; }
+        public float BPM { get; set; }
+        public int DownloadCount { get; set; }
+        public int Upvotes { get; set; }
+        public int Downvotes { get; set; }
+        public int SongDuration { get; set; }
+        public int DiffOffset { get; set; }
+        public int DiffCount { get; set; }
+        public RankStatus RankedStatus { get; set; }
+        public float Rating { get; set; }
+        public DateTime UploadTime { get; set; }
+        public string Key { get; set; }
+        public string Hash { get; set; }
+        public string SongName { get; set; }
+        public string SongAuthorName { get; set; }
+        public string LevelAuthorName { get; set; }
+        public string CoverURL { get; set; }
+        public string UploaderName { get; set; }
+        public ConcurrentDictionary<BeatDataCharacteristics, ConcurrentDictionary<BeatMapDifficulty, BeatSongDataDifficultyStats>> Characteristics { get; set; }
     }
 }
