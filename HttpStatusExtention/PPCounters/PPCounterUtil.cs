@@ -1,6 +1,4 @@
-﻿using HttpStatusExtention.DataBases;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 namespace HttpStatusExtention.PPCounters
@@ -9,6 +7,17 @@ namespace HttpStatusExtention.PPCounters
     {
         static PPCounterUtil()
         {
+            oldSlopes = new float[oldPPCurve.Length - 1];
+            for (var i = 0; i < oldPPCurve.Length - 1; i++) {
+                var x1 = oldPPCurve[i].Item1;
+                var y1 = oldPPCurve[i].Item2;
+                var x2 = oldPPCurve[i + 1].Item1;
+                var y2 = oldPPCurve[i + 1].Item2;
+
+                var m = (y2 - y1) / (x2 - x1);
+                oldSlopes[i] = m;
+            }
+
             slopes = new float[ppCurve.Length - 1];
             for (var i = 0; i < ppCurve.Length - 1; i++) {
                 var x1 = ppCurve[i].Item1;
@@ -26,7 +35,7 @@ namespace HttpStatusExtention.PPCounters
         /// <summary>
         /// オーバーキル用
         /// </summary>
-        private static (float, float)[] oldPPCurve = new (float, float)[]
+        private static readonly (float, float)[] oldPPCurve = new (float, float)[]
         {
             (0f, 0),
             (.45f, .015f),
@@ -81,75 +90,43 @@ namespace HttpStatusExtention.PPCounters
             if (labels.Length != 3) {
                 return true;
             }
-            return songsAllowingPositiveModifiers.Contains(labels.ElementAt(2).ToUpper());
+            return songsAllowingPositiveModifiers.Contains(labels.ElementAt(2).Substring(0, 40).ToUpper());
         }
 
-        public static float GetPP(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty)
+        public static float CalculatePP(float rawPP, float accuracy, bool oldCurve)
         {
-            if (beatmapLevel == null) {
-                return 0;
-            }
-            return GetPP(beatmapLevel.levelID.Split('_').ElementAt(2), difficulty);
+            return rawPP * PPPercentage(accuracy, oldCurve);
         }
-
-        public static float GetPP(string hash, BeatmapDifficulty difficulty)
-        {
-            try {
-                var song = ScoreDataBase.Songs[hash].AsObject;
-                if (song == null) {
-                    return 0;
-                }
-                switch (difficulty) {
-                    case BeatmapDifficulty.Easy:
-                        return song["_Easy_SoloStandard"].AsFloat;
-                    case BeatmapDifficulty.Normal:
-                        return song["_Normal_SoloStandard"].AsFloat;
-                    case BeatmapDifficulty.Hard:
-                        return song["_Hard_SoloStandard"].AsFloat;
-                    case BeatmapDifficulty.Expert:
-                        return song["_Expert_SoloStandard"].AsFloat;
-                    case BeatmapDifficulty.ExpertPlus:
-                        return song["_ExpertPlus_SoloStandard"].AsFloat;
-                    default:
-                        return 0;
-                }
-            }
-            catch (Exception e) {
-                Plugin.Log.Error(e);
-                return 0;
-            }
-        }
-
-        //public static float CalculatePP(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty, float accuracy)
-        //{
-        //    var rawPP = GetPP(beatmapLevel, difficulty);
-        //    return CalculatePP(rawPP, accuracy);
-        //}
-
-        public static float CalculatePP(float rawPP, float accuracy, bool oldCurve) => rawPP * PPPercentage(accuracy, oldCurve);
 
         private static float PPPercentage(float accuracy, bool oldCurve)
         {
             var max = oldCurve ? 1.14f : 1f;
             var maxReward = oldCurve ? 1.25f : 1.5f;
 
-            if (accuracy >= max)
+            if (accuracy >= max) {
                 return maxReward;
-            if (accuracy <= 0)
+            }
+
+            if (accuracy <= 0) {
                 return 0;
+            }
 
             var i = -1;
             if (oldCurve) {
                 foreach ((var score, var given) in oldPPCurve) {
-                    if (score > accuracy)
+                    if (score > accuracy) {
                         break;
+                    }
+
                     i++;
                 }
             }
             else {
                 foreach ((var score, var given) in ppCurve) {
-                    if (score > accuracy)
+                    if (score > accuracy) {
                         break;
+                    }
+
                     i++;
                 }
             }

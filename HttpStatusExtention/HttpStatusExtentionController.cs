@@ -8,13 +8,15 @@ namespace HttpStatusExtention
     {
         private IGamePause _gamePause;
 
-        private void OnGameResume() => HMMainThreadDispatcher.instance.Enqueue(this.SongStartWait(false));
+        private void OnGameResume()
+        {
+            HMMainThreadDispatcher.instance.Enqueue(this.SongStartWait(false));
+        }
 
         [Inject]
         protected void Constractor(IGamePause gamePause)
         {
             this._gamePause = gamePause;
-            
         }
 
         protected override void Setup()
@@ -25,7 +27,7 @@ namespace HttpStatusExtention
 
         protected override void Dispose(bool disposing)
         {
-            
+
             if (disposing) {
                 this._gamePause.didResumeEvent -= this.OnGameResume;
             }
