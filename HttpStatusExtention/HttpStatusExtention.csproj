@@ -150,7 +150,6 @@
     <Compile Include="Converters\BeatMapCoreConverter.cs" />
     <Compile Include="Converters\SongDetailsConveter.cs" />
     <Compile Include="Extentions\BeatmapLevelExtention.cs" />
-    <Compile Include="Bases\HttpStatusExtentonControllerBase.cs" />
     <Compile Include="HarmonyPathces\SRMConigPatch.cs" />
     <Compile Include="Installer\HttpStatusExtentionInstaller.cs" />
     <Compile Include="Installer\HttpStatusExtentionMenuAndGameInstaller.cs" />
