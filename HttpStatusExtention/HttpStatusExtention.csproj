@@ -149,8 +149,6 @@
   <ItemGroup>
     <Compile Include="Converters\BeatMapCoreConverter.cs" />
     <Compile Include="Converters\SongDetailsConveter.cs" />
-    <Compile Include="DataBases\ScoreDataBase.cs" />
-    <Compile Include="DataBases\WebClient.cs" />
     <Compile Include="Extentions\BeatmapLevelExtention.cs" />
     <Compile Include="Bases\HttpStatusExtentonControllerBase.cs" />
     <Compile Include="HarmonyPathces\SRMConigPatch.cs" />

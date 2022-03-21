@@ -1,5 +1,4 @@
 ﻿using HarmonyLib;
-using HttpStatusExtention.DataBases;
 using HttpStatusExtention.Installers;
 using IPA;
 using IPA.Loader;
@@ -32,7 +31,6 @@ namespace HttpStatusExtention
             zenjector.Install<HttpStatusExtentionInstaller>(Location.Player);
             zenjector.Install<HttpStatusExtentionMenuAndGameInstaller>(Location.Menu | Location.Player);
             zenjector.Install<HttpStatusExxtentionAppInstaller>(Location.App);
-            _ = ScoreDataBase.Instance.Initialize();
         }
 
         #region BSIPA Config

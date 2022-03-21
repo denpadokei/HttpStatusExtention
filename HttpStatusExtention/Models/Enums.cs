@@ -5,6 +5,7 @@ namespace HttpStatusExtention.Models
 {
     public enum BeatDataCharacteristics
     {
+        [Description("Custom")]
         Unkown,
         [Description("Standard")]
         Standard,

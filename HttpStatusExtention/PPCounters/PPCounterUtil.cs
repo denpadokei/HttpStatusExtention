@@ -1,7 +1,4 @@
-﻿using HttpStatusExtention.DataBases;
-using HttpStatusExtention.Models;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 namespace HttpStatusExtention.PPCounters
@@ -93,42 +90,8 @@ namespace HttpStatusExtention.PPCounters
             if (labels.Length != 3) {
                 return true;
             }
-            return songsAllowingPositiveModifiers.Contains(labels.ElementAt(2).ToUpper());
+            return songsAllowingPositiveModifiers.Contains(labels.ElementAt(2).Substring(0, 40).ToUpper());
         }
-
-        public static float GetPP(string hash, BeatmapDifficulty difficulty, BeatDataCharacteristics beatDataCharacteristics)
-        {
-            try {
-                var song = ScoreDataBase.Songs[hash].AsObject;
-                if (song == null) {
-                    return 0;
-                }
-                switch (difficulty) {
-                    case BeatmapDifficulty.Easy:
-                        return song["_Easy_SoloStandard"].AsFloat;
-                    case BeatmapDifficulty.Normal:
-                        return song["_Normal_SoloStandard"].AsFloat;
-                    case BeatmapDifficulty.Hard:
-                        return song["_Hard_SoloStandard"].AsFloat;
-                    case BeatmapDifficulty.Expert:
-                        return song["_Expert_SoloStandard"].AsFloat;
-                    case BeatmapDifficulty.ExpertPlus:
-                        return song["_ExpertPlus_SoloStandard"].AsFloat;
-                    default:
-                        return 0;
-                }
-            }
-            catch (Exception e) {
-                Plugin.Log.Error(e);
-                return 0;
-            }
-        }
-
-        //public static float CalculatePP(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty, float accuracy)
-        //{
-        //    var rawPP = GetPP(beatmapLevel, difficulty);
-        //    return CalculatePP(rawPP, accuracy);
-        //}
 
         public static float CalculatePP(float rawPP, float accuracy, bool oldCurve)
         {
