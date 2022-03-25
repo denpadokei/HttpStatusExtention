@@ -103,7 +103,7 @@ namespace HttpStatusExtention.SongDetailsCaches
         public double GetPP(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty, BeatDataCharacteristics beatDataCharacteristics)
         {
             var song = this.GetBeatStarSongDiffculityStats(beatmapLevel, difficulty, beatDataCharacteristics);
-            return song.PP;
+            return song != null ? song.PP : 0;
         }
 
         public void Initialize()
