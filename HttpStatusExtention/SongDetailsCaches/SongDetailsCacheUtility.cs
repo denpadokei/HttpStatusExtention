@@ -44,6 +44,7 @@ namespace HttpStatusExtention.SongDetailsCaches
                     diffData.PP = diff.approximatePpValue;
                     diffData.Mods = SongDetailsConveter.ConvertToRecomendMod(diff.mods);
                     diffData.Ranked = diff.ranked;
+                    diffData.Song = result;
                     dic.TryAdd(diffData.Difficulty, diffData);
                 }
                 diffData.Characteristics = SongDetailsConveter.ConvertToBeatDataCharacteristics(chara.Key);
@@ -62,6 +63,9 @@ namespace HttpStatusExtention.SongDetailsCaches
             result.UploadTime = song.uploadTime;
             result.Hash = song.hash;
             result.SongName = song.songName;
+            result.SongAuthorName = song.songAuthorName;
+            result.LevelAuthorName = song.levelAuthorName;
+            result.CoverURL = song.coverURL;
             result.UploaderName = song.uploaderName;
             return result;
         }
