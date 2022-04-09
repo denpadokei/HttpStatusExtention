@@ -1,4 +1,5 @@
-﻿using HttpStatusExtention.SongDetailsCaches;
+﻿using HttpStatusExtention.PPCounters;
+using HttpStatusExtention.SongDetailsCaches;
 using Zenject;
 
 namespace HttpStatusExtention.Installers
@@ -8,6 +9,7 @@ namespace HttpStatusExtention.Installers
         public override void InstallBindings()
         {
             this.Container.BindInterfacesAndSelfTo<SongDetailsCacheUtility>().AsSingle().NonLazy();
+            this.Container.BindInterfacesAndSelfTo<PPDownloader>().AsSingle().NonLazy();
         }
     }
 }

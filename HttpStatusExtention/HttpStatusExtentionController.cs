@@ -83,7 +83,7 @@ namespace HttpStatusExtention
             var beatmapJson = this._statusManager.StatusJSON["beatmap"].AsObject;
 
             if (this._currentStarSong != null && this._currentStarSongDiff != null) {
-                beatmapJson["pp"] = new JSONNumber(PPCounterUtil.CalculatePP(this._songRawPP, multiplier, PPCounterUtil.AllowedPositiveModifiers(levelID)));
+                beatmapJson["pp"] = new JSONNumber(PPCounterUtil.CalculatePP(this._songRawPP, multiplier * 0.95f, PPCounterUtil.AllowedPositiveModifiers(levelID)));
                 beatmapJson["star"] = new JSONNumber(this._currentStarSongDiff.Star);
                 beatmapJson["downloadCount"] = new JSONNumber(this._currentStarSong.DownloadCount);
                 beatmapJson["upVotes"] = new JSONNumber(this._currentStarSong.Upvotes);

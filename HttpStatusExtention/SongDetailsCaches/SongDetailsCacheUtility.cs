@@ -2,6 +2,7 @@
 using HttpStatusExtention.Extentions;
 using HttpStatusExtention.Interfaces;
 using HttpStatusExtention.Models;
+using HttpStatusExtention.PPCounters;
 using SongDetailsCache;
 using System.Collections.Concurrent;
 using System.Linq;
@@ -15,6 +16,7 @@ namespace HttpStatusExtention.SongDetailsCaches
     public class SongDetailsCacheUtility : ISongDataUtil, IInitializable
     {
         private SongDetails _songDetails = null;
+        private PPDownloader _downloader = null;
         private volatile bool _init = false;
 
         public BeatSongData GetBeatStarSong(CustomPreviewBeatmapLevel beatmapLevel)
@@ -32,23 +34,26 @@ namespace HttpStatusExtention.SongDetailsCaches
                 Characteristics = new ConcurrentDictionary<BeatDataCharacteristics, ConcurrentDictionary<BeatMapDifficulty, BeatSongDataDifficultyStats>>()
             };
             foreach (var chara in song.difficulties.GroupBy(x => x.characteristic)) {
-                var diffData = new BeatSongDataDifficultyStats();
+                var characteristics = SongDetailsConveter.ConvertToBeatDataCharacteristics(chara.Key);
                 var dic = new ConcurrentDictionary<BeatMapDifficulty, BeatSongDataDifficultyStats>();
                 foreach (var diff in chara) {
-                    diffData.Difficulty = SongDetailsConveter.ConvertToBeatMapDifficulty(diff.difficulty);
-                    diffData.Star = diff.stars;
-                    diffData.NJS = diff.njs;
-                    diffData.Bombs = (int)diff.bombs;
-                    diffData.Notes = (int)diff.notes;
-                    diffData.Obstacles = (int)diff.obstacles;
-                    diffData.PP = diff.approximatePpValue;
-                    diffData.Mods = SongDetailsConveter.ConvertToRecomendMod(diff.mods);
-                    diffData.Ranked = diff.ranked;
-                    diffData.Song = result;
+                    var diffData = new BeatSongDataDifficultyStats
+                    {
+                        Difficulty = SongDetailsConveter.ConvertToBeatMapDifficulty(diff.difficulty),
+                        Star = diff.stars,
+                        NJS = diff.njs,
+                        Bombs = (int)diff.bombs,
+                        Notes = (int)diff.notes,
+                        Obstacles = (int)diff.obstacles,
+                        PP = diff.approximatePpValue,
+                        Mods = SongDetailsConveter.ConvertToRecomendMod(diff.mods),
+                        Ranked = diff.ranked,
+                        Song = result,
+                        Characteristics = characteristics
+                    };
                     dic.TryAdd(diffData.Difficulty, diffData);
                 }
-                diffData.Characteristics = SongDetailsConveter.ConvertToBeatDataCharacteristics(chara.Key);
-                result.Characteristics.TryAdd(diffData.Characteristics, dic);
+                result.Characteristics.TryAdd(characteristics, dic);
             }
             result.Key = song.key;
             result.BPM = song.bpm;
@@ -102,8 +107,28 @@ namespace HttpStatusExtention.SongDetailsCaches
 
         public double GetPP(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty, BeatDataCharacteristics beatDataCharacteristics)
         {
+            if (this._downloader.Init && this._downloader.RowPPs.TryGetValue(beatmapLevel.GetHashOrLevelID().ToUpper(), out var pp)) {
+                // PP counterと同じ処理
+                switch (difficulty) {
+                    case BeatmapDifficulty.Easy:
+                        return pp.EasySoloStandard;
+                    case BeatmapDifficulty.Normal:
+                        return pp.NormalSoloStandard;
+                    case BeatmapDifficulty.Hard:
+                        return pp.HardSoloStandard;
+                    case BeatmapDifficulty.Expert:
+                        return pp.ExpertSoloStandard;
+                    case BeatmapDifficulty.ExpertPlus:
+                        return pp.ExpertPlusSoloStandard;
+                    default:
+                        break;
+                }
+            }
             var song = this.GetBeatStarSongDiffculityStats(beatmapLevel, difficulty, beatDataCharacteristics);
-            return song != null ? song.PP : 0;
+            if (song != null) {
+                return song.PP;
+            }
+            return 0;
         }
 
         public void Initialize()
@@ -133,6 +158,11 @@ namespace HttpStatusExtention.SongDetailsCaches
             else {
                 return false;
             }
+        }
+        [Inject]
+        private void Constractor(PPDownloader downloader)
+        {
+            this._downloader = downloader;
         }
     }
 }

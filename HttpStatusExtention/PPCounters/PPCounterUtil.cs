@@ -61,24 +61,37 @@ namespace HttpStatusExtention.PPCounters
         private static readonly (float, float)[] s_ppCurve = new (float, float)[]
         {
             (0f, 0),
-            (.45f, .015f),
-            (.50f, .03f),
-            (.55f, .06f),
-            (.60f, .105f),
-            (.65f, .15f),
-            (.70f, .22f),
-            (.75f, .35f),
-            (.80f, .42f),
-            (.86f, .6f),
-            (.9f, .78f),
-            (.925f, .905f),
-            (.945f, 1.015f),
-            (.95f, 1.046f),
-            (.96f, 1.115f),
-            (.97f, 1.2f),
-            (.98f, 1.29f),
-            (.99f, 1.39f),
-            (1, 1.5f),
+            (.6f, .25f),
+            (.65f, .29f),
+            (.7f, .34f),
+            (.75f, .40f),
+            (.8f, .47f),
+            (.825f, .51f),
+            (.85f, .57f),
+            (.875f, .655f),
+            (.9f, .75f),
+            (.91f, .79f),
+            (.92f, .835f),
+            (.93f, 0.885f),
+            (.94f, 0.94f),
+            (.95f, 1f),
+            (.955f, 1.045f),
+            (.96f, 1.11f),
+            (.965f, 1.20f),
+            (.97f, 1.31f),
+            (.9725f, 1.37f),
+            (.975f, 1.45f),
+            (.9775f, 1.57f),
+            (.98f, 1.71f),
+            (.9825f, 1.88f),
+            (.985f, 2.1f),
+            (.9875f, 2.38f),
+            (.99f, 2.73f),
+            (.9925f, 3.17f),
+            (.995f, 3.76f),
+            (.9975f, 4.7f),
+            (.999f, 5.8f),
+            (1, 7f)
         };
         private static readonly HashSet<string> s_songsAllowingPositiveModifiers = new HashSet<string> {
             "2FDDB136BDA7F9E29B4CB6621D6D8E0F8A43B126", // Overkill Nuketime
@@ -101,7 +114,7 @@ namespace HttpStatusExtention.PPCounters
         private static float PPPercentage(float accuracy, bool oldCurve)
         {
             var max = oldCurve ? 1.14f : 1f;
-            var maxReward = oldCurve ? 1.25f : 1.5f;
+            var maxReward = oldCurve ? 1.25f : 7f;
 
             if (accuracy >= max) {
                 return maxReward;
