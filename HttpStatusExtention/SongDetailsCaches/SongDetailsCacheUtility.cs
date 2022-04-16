@@ -107,7 +107,7 @@ namespace HttpStatusExtention.SongDetailsCaches
 
         public double GetPP(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty, BeatDataCharacteristics beatDataCharacteristics)
         {
-            if (this._downloader.Init && this._downloader.RowPPs.TryGetValue(beatmapLevel.GetHashOrLevelID().ToUpper(), out var pp)) {
+            if (beatDataCharacteristics == BeatDataCharacteristics.Standard && this._downloader.Init && this._downloader.RowPPs.TryGetValue(beatmapLevel.GetHashOrLevelID().ToUpper(), out var pp)) {
                 // PP counterと同じ処理
                 switch (difficulty) {
                     case BeatmapDifficulty.Easy:
