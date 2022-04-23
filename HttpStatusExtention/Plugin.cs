@@ -1,7 +1,6 @@
 ﻿using HarmonyLib;
 using HttpStatusExtention.Installers;
 using IPA;
-using IPA.Loader;
 using SiraUtil.Zenject;
 using System.Reflection;
 using IPALogger = IPA.Logging.Logger;
@@ -48,15 +47,23 @@ namespace HttpStatusExtention
         [OnEnable]
         public void OnEnable()
         {
-            if (PluginManager.GetPlugin("Song Request Manager V2") != null) {
-                s_harmony.PatchAll(Assembly.GetExecutingAssembly());
+            try {
+                s_harmony?.PatchAll(Assembly.GetExecutingAssembly());
+            }
+            catch (System.Exception e) {
+                Log.Error(e);
             }
         }
 
         [OnDisable]
         public void OnDisable()
         {
-            s_harmony.UnpatchSelf();
+            try {
+                s_harmony?.UnpatchSelf();
+            }
+            catch (System.Exception e) {
+                Log.Error(e);
+            }
         }
     }
 }

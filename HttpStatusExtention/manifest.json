@@ -3,7 +3,7 @@
   "id": "HttpStatusExtention",
   "name": "HttpStatusExtention",
   "author": "denpadokei",
-  "version": "4.0.4",
+  "version": "4.0.5",
   "description": "",
   "gameVersion": "1.20.0",
   "dependsOn": {
@@ -11,7 +11,7 @@
     "SongDetailsCache": "^1.2.0",
     "SiraUtil": "^3.0.5",
     "SongCore": "^3.2.2",
-    "HttpSiraStatus": "^7.0.0"
+    "HttpSiraStatus": "^7.1.0"
   },
   "features": []
 }

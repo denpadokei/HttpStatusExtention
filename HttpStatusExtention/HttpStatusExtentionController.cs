@@ -67,7 +67,7 @@ namespace HttpStatusExtention
 
         private void SetStarInfo(string levelID)
         {
-            var multiplier = this._statusManager.GameStatus.modifierMultiplier;
+            var multiplier = this._gameStatus.modifierMultiplier;
             if (multiplier != 1 && !PPCounterUtil.AllowedPositiveModifiers(levelID)) {
                 this._songRawPP = 0;
             }
@@ -128,10 +128,10 @@ namespace HttpStatusExtention
                 songSpeedMul = practiceSettings.songSpeedMul;
             }
 
-            this._statusManager.GameStatus.start = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - (long)(this._audioTimeSource.songTime * 1000f / songSpeedMul);
+            this._gameStatus.start = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - (long)(this._audioTimeSource.songTime * 1000f / songSpeedMul);
             //resumeの時はstartSongTime分がsongTimeに含まれているので処理不要
             if (songStart && practiceSettings != null) {
-                this._statusManager.GameStatus.start -= (long)(practiceSettings.startSongTime * 1000f / songSpeedMul);
+                this._gameStatus.start -= (long)(practiceSettings.startSongTime * 1000f / songSpeedMul);
             }
 
             if (songStart) {
@@ -145,6 +145,7 @@ namespace HttpStatusExtention
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
         #region // メンバ変数
         private IGamePause _gamePause;
+        private GameStatus _gameStatus;
         private bool _disposedValue;
         private IStatusManager _statusManager;
         private RelativeScoreAndImmediateRankCounter _relativeScoreAndImmediateRankCounter;
@@ -164,6 +165,7 @@ namespace HttpStatusExtention
         [Inject]
         protected void Constractor(
             IStatusManager statusManager,
+            GameStatus gameStatus,
             RelativeScoreAndImmediateRankCounter relativeScoreAndImmediateRankCounter,
             IAudioTimeSource audioTimeSource,
             GameplayCoreSceneSetupData gameplayCoreSceneSetupData,
@@ -176,6 +178,7 @@ namespace HttpStatusExtention
             this._gameplayCoreSceneSetupData = gameplayCoreSceneSetupData;
             this._songDataUtil = songDataUtil;
             this._gamePause = gamePause;
+            this._gameStatus = gameStatus;
         }
         protected virtual void Dispose(bool disposing)
         {
