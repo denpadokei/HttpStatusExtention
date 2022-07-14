@@ -128,12 +128,6 @@ namespace HttpStatusExtention
                 songSpeedMul = practiceSettings.songSpeedMul;
             }
 
-            this._gameStatus.start = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - (long)(this._audioTimeSource.songTime * 1000f / songSpeedMul);
-            //resumeの時はstartSongTime分がsongTimeに含まれているので処理不要
-            if (songStart && practiceSettings != null) {
-                this._gameStatus.start -= (long)(practiceSettings.startSongTime * 1000f / songSpeedMul);
-            }
-
             if (songStart) {
                 this._statusManager.EmitStatusUpdate(ChangedProperty.AllButNoteCut, BeatSaberEvent.SongStart);
             }
@@ -145,7 +139,7 @@ namespace HttpStatusExtention
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
         #region // メンバ変数
         private IGamePause _gamePause;
-        private GameStatus _gameStatus;
+        private IGameStatus _gameStatus;
         private bool _disposedValue;
         private IStatusManager _statusManager;
         private RelativeScoreAndImmediateRankCounter _relativeScoreAndImmediateRankCounter;
@@ -165,7 +159,7 @@ namespace HttpStatusExtention
         [Inject]
         protected void Constractor(
             IStatusManager statusManager,
-            GameStatus gameStatus,
+            IGameStatus gameStatus,
             RelativeScoreAndImmediateRankCounter relativeScoreAndImmediateRankCounter,
             IAudioTimeSource audioTimeSource,
             GameplayCoreSceneSetupData gameplayCoreSceneSetupData,
