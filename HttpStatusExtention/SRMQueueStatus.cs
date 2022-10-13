@@ -1,4 +1,5 @@
 ﻿using HttpSiraStatus;
+using HttpSiraStatus.Enums;
 using HttpSiraStatus.Interfaces;
 using HttpSiraStatus.Util;
 using HttpStatusExtention.HarmonyPathces;
