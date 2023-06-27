@@ -37,6 +37,15 @@ namespace HttpStatusExtention.SongDetailsCaches
                 var characteristics = SongDetailsConveter.ConvertToBeatDataCharacteristics(chara.Key);
                 var dic = new ConcurrentDictionary<BeatMapDifficulty, BeatSongDataDifficultyStats>();
                 foreach (var diff in chara) {
+                    float calcPP()
+                    {
+                        if (diff.stars <= 0.05f || (diff.song.rankedStates & SongDetailsCache.Structs.RankedStates.ScoresaberRanked) == 0) {
+                            return 0f;
+                        }
+
+                        return diff.stars * 43.146f;
+                    }
+                    var pp = calcPP();
                     var diffData = new BeatSongDataDifficultyStats
                     {
                         Difficulty = SongDetailsConveter.ConvertToBeatMapDifficulty(diff.difficulty),
@@ -45,9 +54,9 @@ namespace HttpStatusExtention.SongDetailsCaches
                         Bombs = (int)diff.bombs,
                         Notes = (int)diff.notes,
                         Obstacles = (int)diff.obstacles,
-                        PP = diff.approximatePpValue,
+                        PP = pp,
                         Mods = SongDetailsConveter.ConvertToRecomendMod(diff.mods),
-                        Ranked = diff.ranked,
+                        Ranked = (diff.song.rankedStates & SongDetailsCache.Structs.RankedStates.ScoresaberRanked) != 0,
                         Song = result,
                         Characteristics = characteristics
                     };
@@ -64,7 +73,7 @@ namespace HttpStatusExtention.SongDetailsCaches
             result.SongDuration = (int)song.songDuration.TotalSeconds;
             result.DiffOffset = (int)song.diffOffset;
             result.DiffCount = song.diffCount;
-            result.RankedStatus = SongDetailsConveter.ConvertToTRankStatus(song.rankedStatus);
+            result.RankedStatus = SongDetailsConveter.ConvertToTRankStatus(song.rankedStates);
             result.UploadTime = song.uploadTime;
             result.Hash = song.hash;
             result.SongName = song.songName;

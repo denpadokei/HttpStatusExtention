@@ -82,23 +82,22 @@ namespace HttpStatusExtention.Converters
             return result;
         }
 
-        public static RankStatus ConvertToTRankStatus(RankedStatus rankedStatus)
+        public static RankStatus ConvertToTRankStatus(RankedStates rankedStatus)
         {
-            var result = RankStatus.Unranked;
+            RankStatus result;
             switch (rankedStatus) {
-                case RankedStatus.Unranked:
-                    result = RankStatus.Unranked;
-                    break;
-                case RankedStatus.Ranked:
+                
+                case RankedStates.ScoresaberRanked:
                     result = RankStatus.Ranked;
                     break;
-                case RankedStatus.Qualified:
-                    result = RankStatus.Qualified;
-                    break;
-                case RankedStatus.Queued:
+                case RankedStates.ScoresaberQualified:
                     result = RankStatus.Queued;
                     break;
+                case RankedStates.BeatleaderQualified:
+                case RankedStates.BeatleaderRanked:
+                case RankedStates.Unranked:
                 default:
+                    result = RankStatus.Unranked;
                     break;
             }
             return result;
