@@ -4,6 +4,7 @@ using HttpStatusExtention.Interfaces;
 using HttpStatusExtention.Models;
 using HttpStatusExtention.PPCounters;
 using SongDetailsCache;
+using SongDetailsCache.Structs;
 using System.Collections.Concurrent;
 using System.Linq;
 using Zenject;
@@ -39,7 +40,7 @@ namespace HttpStatusExtention.SongDetailsCaches
                 foreach (var diff in chara) {
                     float calcPP()
                     {
-                        if (diff.stars <= 0.05f || (diff.song.rankedStates & SongDetailsCache.Structs.RankedStates.ScoresaberRanked) == 0) {
+                        if (diff.stars <= 0.05f || (diff.song.rankedStatus & RankedStatus.Ranked) == 0) {
                             return 0f;
                         }
 
@@ -56,7 +57,7 @@ namespace HttpStatusExtention.SongDetailsCaches
                         Obstacles = (int)diff.obstacles,
                         PP = pp,
                         Mods = SongDetailsConveter.ConvertToRecomendMod(diff.mods),
-                        Ranked = (diff.song.rankedStates & SongDetailsCache.Structs.RankedStates.ScoresaberRanked) != 0,
+                        Ranked = (diff.song.rankedStatus & RankedStatus.Ranked) != 0,
                         Song = result,
                         Characteristics = characteristics
                     };
@@ -73,7 +74,7 @@ namespace HttpStatusExtention.SongDetailsCaches
             result.SongDuration = (int)song.songDuration.TotalSeconds;
             result.DiffOffset = (int)song.diffOffset;
             result.DiffCount = song.diffCount;
-            result.RankedStatus = SongDetailsConveter.ConvertToTRankStatus(song.rankedStates);
+            result.RankedStatus = SongDetailsConveter.ConvertToTRankStatus(song.rankedStatus);
             result.UploadTime = song.uploadTime;
             result.Hash = song.hash;
             result.SongName = song.songName;

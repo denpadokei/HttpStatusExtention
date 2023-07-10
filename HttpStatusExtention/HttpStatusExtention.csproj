@@ -112,6 +112,11 @@
       <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\IPA.Loader.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Unity.ResourceManager, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <Private>False</Private>
+      <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\Unity.ResourceManager.dll</HintPath>
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
     <Reference Include="Unity.TextMeshPro">
       <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\Unity.TextMeshPro.dll</HintPath>
       <Private>False</Private>
@@ -162,6 +167,7 @@
     <Compile Include="Models\Enums.cs" />
     <Compile Include="Models\BeatSongData.cs" />
     <Compile Include="Models\BeatSongDataDifficultyStats.cs" />
+    <Compile Include="Models\MainThreadInvoker.cs" />
     <Compile Include="Networks\WebClient.cs" />
     <Compile Include="Plugin.cs" />
     <Compile Include="HttpStatusExtentionController.cs" />

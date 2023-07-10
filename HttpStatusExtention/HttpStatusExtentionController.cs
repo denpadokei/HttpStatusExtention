@@ -27,7 +27,7 @@ namespace HttpStatusExtention
         #region // プライベートメソッド
         private void OnGameResume()
         {
-            HMMainThreadDispatcher.instance.Enqueue(this.SongStartWait(false));
+            MainThreadInvoker.Instance.Enqueue(this.SongStartWait(false));
         }
         private void SendPP()
         {
@@ -63,7 +63,7 @@ namespace HttpStatusExtention
             if (this._currentCustomBeatmapLevel != null) {
                 this.SetStarInfo(this._levelID);
             }
-            HMMainThreadDispatcher.instance.Enqueue(this.SongStartWait());
+            MainThreadInvoker.Instance.Enqueue(this.SongStartWait());
         }
 
         private void SetStarInfo(string levelID)
