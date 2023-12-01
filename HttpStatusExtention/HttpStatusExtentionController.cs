@@ -1,33 +1,35 @@
-﻿using HttpSiraStatus;
-using HttpSiraStatus.Enums;
+﻿using HttpSiraStatus.Enums;
 using HttpSiraStatus.Interfaces;
 using HttpSiraStatus.Util;
 using HttpStatusExtention.Interfaces;
 using HttpStatusExtention.Models;
 using HttpStatusExtention.PPCounters;
+using SiraUtil.Zenject;
 using SongCore;
 using System;
 using System.Collections;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 using Zenject;
 
 namespace HttpStatusExtention
 {
-    public class HttpStatusExtentionController : IInitializable, IDisposable
+    public class HttpStatusExtentionController : IAsyncInitializable, IDisposable
     {
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
         #region // パブリックメソッド
-        public void Initialize()
+        public Task InitializeAsync(CancellationToken token)
         {
-            this.Setup();
+            return this.Setup();
         }
         #endregion
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
         #region // プライベートメソッド
         private void OnGameResume()
         {
-            HMMainThreadDispatcher.instance.Enqueue(this.SongStartWait(false));
+            _ = CoroutineManager.Instance.StartCoroutine(this.SongStartWait(false));
         }
         private void SendPP()
         {
@@ -43,11 +45,11 @@ namespace HttpStatusExtention
                 this._statusManager.StatusJSON["performance"] = new JSONObject();
             }
             var jsonObject = this._statusManager.StatusJSON["performance"].AsObject;
-            jsonObject["current_pp"].AsFloat = PPCounterUtil.CalculatePP(this._songRawPP, relativeScore, PPCounterUtil.AllowedPositiveModifiers(this._levelID));
+            jsonObject["current_pp"].AsFloat = this._scoreSaberCalculator.CalculatePP(this._songRawPP, relativeScore, this._scoreSaberCalculator.AllowedPositiveModifiers(this._levelID));
             this._statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
         }
 
-        private void Setup()
+        private async Task Setup()
         {
             Plugin.Log.Debug($"Setup start.");
             this._gamePause.didResumeEvent += this.OnGameResume;
@@ -61,20 +63,17 @@ namespace HttpStatusExtention
             var previewBeatmap = Loader.GetLevelById(beatmapLevel.levelID);
             this._currentCustomBeatmapLevel = previewBeatmap as CustomPreviewBeatmapLevel;
             if (this._currentCustomBeatmapLevel != null) {
-                this.SetStarInfo(this._levelID);
+                await this.SetStarInfo(this._levelID);
             }
-            HMMainThreadDispatcher.instance.Enqueue(this.SongStartWait());
+            _ = CoroutineManager.Instance.StartCoroutine(this.SongStartWait());
         }
 
-        private void SetStarInfo(string levelID)
+        private async Task SetStarInfo(string levelID)
         {
             var multiplier = this._gameStatus.modifierMultiplier;
-            if (multiplier != 1 && !PPCounterUtil.AllowedPositiveModifiers(levelID)) {
-                this._songRawPP = 0;
-            }
-            else {
-                this._songRawPP = (float)this._songDataUtil.GetPP(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty, this._currentBeatmapCharacteristics);
-            }
+            this._songRawPP = multiplier != 1 && !this._scoreSaberCalculator.AllowedPositiveModifiers(levelID)
+                ? 0
+                : (float)this._songDataUtil.GetPP(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty, this._currentBeatmapCharacteristics);
             this.SetCustomLabel(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty, this._currentBeatmapCharacteristics);
             this._currentStarSong = this._songDataUtil.GetBeatStarSong(this._currentCustomBeatmapLevel);
             this._currentStarSongDiff = this._songDataUtil.GetBeatStarSongDiffculityStats(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty, this._currentBeatmapCharacteristics);
@@ -84,7 +83,10 @@ namespace HttpStatusExtention
             var beatmapJson = this._statusManager.StatusJSON["beatmap"].AsObject;
 
             if (this._currentStarSong != null && this._currentStarSongDiff != null) {
-                beatmapJson["pp"] = new JSONNumber(PPCounterUtil.CalculatePP(this._songRawPP, multiplier * 0.95f, PPCounterUtil.AllowedPositiveModifiers(levelID)));
+                while (this._PPDownloader?.Init != true) {
+                    await Task.Delay(1);
+                }
+                beatmapJson["pp"] = new JSONNumber(this._scoreSaberCalculator.CalculatePP(this._songRawPP, multiplier * 0.95f, this._scoreSaberCalculator.AllowedPositiveModifiers(levelID)));
                 beatmapJson["star"] = new JSONNumber(this._currentStarSongDiff.Star);
                 beatmapJson["downloadCount"] = new JSONNumber(this._currentStarSong.DownloadCount);
                 beatmapJson["upVotes"] = new JSONNumber(this._currentStarSong.Upvotes);
@@ -154,6 +156,8 @@ namespace HttpStatusExtention
         private BeatSongDataDifficultyStats _currentStarSongDiff;
         private float _songRawPP;
         private string _levelID;
+        private ScoreSaberCalculator _scoreSaberCalculator;
+        private PPDownloader _PPDownloader;
         #endregion
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
         #region // 構築・破棄
@@ -165,7 +169,9 @@ namespace HttpStatusExtention
             IAudioTimeSource audioTimeSource,
             GameplayCoreSceneSetupData gameplayCoreSceneSetupData,
             ISongDataUtil songDataUtil,
-            IGamePause gamePause)
+            IGamePause gamePause,
+            PPDownloader pPDownloader,
+            ScoreSaberCalculator scoreSaberCalculator)
         {
             this._statusManager = statusManager;
             this._relativeScoreAndImmediateRankCounter = relativeScoreAndImmediateRankCounter;
@@ -174,6 +180,8 @@ namespace HttpStatusExtention
             this._songDataUtil = songDataUtil;
             this._gamePause = gamePause;
             this._gameStatus = gameStatus;
+            this._scoreSaberCalculator = scoreSaberCalculator;
+            this._PPDownloader = pPDownloader;
         }
         protected virtual void Dispose(bool disposing)
         {
@@ -193,6 +201,7 @@ namespace HttpStatusExtention
             this.Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
+
         #endregion
     }
 }

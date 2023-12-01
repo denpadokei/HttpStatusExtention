@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace HttpStatusExtention
 {
-    internal class WebResponse
+    public class WebResponse
     {
         public readonly HttpStatusCode StatusCode;
         public readonly string ReasonPhrase;
@@ -74,12 +74,11 @@ namespace HttpStatusExtention
                 Plugin.Log.Error(e);
             }
 
-
             _client = new HttpClient()
             {
                 Timeout = new TimeSpan(0, 0, 15)
             };
-            _client.DefaultRequestHeaders.UserAgent.TryParseAdd($"{Assembly.GetExecutingAssembly().GetName().Name}/{Assembly.GetExecutingAssembly().GetName().Version}");
+            _ = _client.DefaultRequestHeaders.UserAgent.TryParseAdd($"{Assembly.GetExecutingAssembly().GetName().Name}/{Assembly.GetExecutingAssembly().GetName().Version}");
         }
 
         internal static async Task<WebResponse> GetAsync(string url, CancellationToken token)
@@ -97,10 +96,7 @@ namespace HttpStatusExtention
         {
             try {
                 var response = await SendAsync(HttpMethod.Get, url, token);
-                if (response?.IsSuccessStatusCode == true) {
-                    return response.ContentToBytes();
-                }
-                return null;
+                return response?.IsSuccessStatusCode == true ? response.ContentToBytes() : null;
             }
             catch (Exception e) {
                 Plugin.Log.Error(e);
@@ -121,10 +117,7 @@ namespace HttpStatusExtention
             try {
                 var response = await SendAsync(HttpMethod.Get, hash, token, progress: progress);
 
-                if (response?.IsSuccessStatusCode == true) {
-                    return response.ContentToBytes();
-                }
-                return null;
+                return response?.IsSuccessStatusCode == true ? response.ContentToBytes() : null;
             }
             catch (Exception e) {
                 Plugin.Log.Error(e);
@@ -154,7 +147,6 @@ namespace HttpStatusExtention
                         Plugin.Log.Error(e);
                     }
                 } while (resp?.StatusCode != HttpStatusCode.NotFound && resp?.IsSuccessStatusCode != true && retryCount <= RETRY_COUNT);
-
 
                 if (token.IsCancellationRequested) {
                     throw new TaskCanceledException();

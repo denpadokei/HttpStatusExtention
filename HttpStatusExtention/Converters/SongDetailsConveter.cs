@@ -86,7 +86,7 @@ namespace HttpStatusExtention.Converters
         {
             RankStatus result;
             switch (rankedStatus) {
-                
+
                 case RankedStates.ScoresaberRanked:
                     result = RankStatus.Ranked;
                     break;

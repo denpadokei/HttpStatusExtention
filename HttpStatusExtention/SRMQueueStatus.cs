@@ -1,5 +1,4 @@
-﻿using HttpSiraStatus;
-using HttpSiraStatus.Enums;
+﻿using HttpSiraStatus.Enums;
 using HttpSiraStatus.Interfaces;
 using HttpSiraStatus.Util;
 using HttpStatusExtention.HarmonyPathces;
@@ -29,9 +28,9 @@ namespace HttpStatusExtention
             try {
                 SRMConigPatch.OnQueueStatusChanged += this.SRMConigPatch_OnQueueStatusChanged;
                 var configType = Type.GetType("SongRequestManagerV2.Configuration.RequestBotConfig, SongRequestManagerV2");
-                var instanceProperty = configType?.GetProperty("Instance", (BindingFlags.Static | BindingFlags.Public));
+                var instanceProperty = configType?.GetProperty("Instance", BindingFlags.Static | BindingFlags.Public);
                 var instance = instanceProperty?.GetValue(configType);
-                var queueStatusProperty = configType?.GetProperty("RequestQueueOpen", (BindingFlags.Instance | BindingFlags.Public));
+                var queueStatusProperty = configType?.GetProperty("RequestQueueOpen", BindingFlags.Instance | BindingFlags.Public);
                 var queueStatus = (bool)queueStatusProperty?.GetValue(instance);
                 this.SRMConigPatch_OnQueueStatusChanged(queueStatus);
             }
