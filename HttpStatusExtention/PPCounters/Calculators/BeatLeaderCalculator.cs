@@ -1,11 +1,14 @@
-﻿using System;
+﻿using SiraUtil.Zenject;
+using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using UnityEngine;
 using Zenject;
 
 namespace HttpStatusExtention.PPCounters
 {
-    public class BeatLeaderCalculator
+    public class BeatLeaderCalculator : IAsyncInitializable
     {
         [Inject] private readonly BeatLeaderData beatLeaderData;
 
@@ -28,6 +31,17 @@ namespace HttpStatusExtention.PPCounters
         private float _powerBottom;
         private BeatLeaderRating _rating;
         private float _passPP;
+
+        private readonly IDifficultyBeatmap difficultyBeatmap;
+        private readonly GameplayModifiers gameplayModifiers;
+        private PPData _pPData;
+        [Inject]
+        public BeatLeaderCalculator(PPData pPData, IDifficultyBeatmap difficultyBeatmap, RelativeScoreAndImmediateRankCounter relativeScoreAndImmediateRankCounter, GameplayModifiers gameplayModifiers)
+        {
+            this.difficultyBeatmap = difficultyBeatmap;
+            this.gameplayModifiers = gameplayModifiers;
+            this._pPData = pPData;
+        }
 
         public void SetCurve(BeatLeader beatLeader, SongID songID, GameplayModifiers modifiers)
         {
@@ -148,6 +162,15 @@ namespace HttpStatusExtention.PPCounters
             if (modifiers.smallCubes) {
                 this._modifierMultiplier += this._modifiersMap.sc;
             }
+        }
+
+        public async Task InitializeAsync(CancellationToken token)
+        {
+            while (this._pPData?.CurveInit != true) {
+                await Task.Delay(1);
+            }
+            var id = SongDataUtils.GetHash(this.difficultyBeatmap.level.levelID);
+            this.SetCurve(this._pPData.Curves.BeatLeader, new SongID(id, this.difficultyBeatmap.difficulty), this.gameplayModifiers);
         }
     }
 }

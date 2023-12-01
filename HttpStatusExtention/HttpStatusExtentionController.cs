@@ -157,6 +157,8 @@ namespace HttpStatusExtention
         private float _songRawPP;
         private string _levelID;
         private ScoreSaberCalculator _scoreSaberCalculator;
+        private BeatLeaderCalculator _beatLeaderCalculator;
+        private AccSaberCalculator _accSaberCalculator;
         private PPDownloader _PPDownloader;
         #endregion
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
@@ -171,7 +173,9 @@ namespace HttpStatusExtention
             ISongDataUtil songDataUtil,
             IGamePause gamePause,
             PPDownloader pPDownloader,
-            ScoreSaberCalculator scoreSaberCalculator)
+            ScoreSaberCalculator scoreSaberCalculator,
+            BeatLeaderCalculator beatLeaderCalculator,
+            AccSaberCalculator accSaberCalculator)
         {
             this._statusManager = statusManager;
             this._relativeScoreAndImmediateRankCounter = relativeScoreAndImmediateRankCounter;
@@ -181,6 +185,8 @@ namespace HttpStatusExtention
             this._gamePause = gamePause;
             this._gameStatus = gameStatus;
             this._scoreSaberCalculator = scoreSaberCalculator;
+            this._beatLeaderCalculator = beatLeaderCalculator;
+            this._accSaberCalculator = accSaberCalculator;
             this._PPDownloader = pPDownloader;
         }
         protected virtual void Dispose(bool disposing)
