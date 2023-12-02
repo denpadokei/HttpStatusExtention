@@ -29,7 +29,7 @@ namespace HttpStatusExtention
             s_harmony = new Harmony(HARMONY_ID);
             zenjector.Install<HttpStatusExtentionInstaller>(Location.Player);
             zenjector.Install<HttpStatusExtentionMenuAndGameInstaller>(Location.Menu | Location.Player);
-            zenjector.Install<HttpStatusExxtentionAppInstaller>(Location.App);
+            zenjector.Install<HttpStatusExtentionAppInstaller>(Location.App);
         }
 
         [OnStart]
