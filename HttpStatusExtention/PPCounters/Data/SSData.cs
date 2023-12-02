@@ -48,7 +48,7 @@ namespace HttpStatusExtention.PPCounters
                 case BeatmapDifficulty.ExpertPlus:
                     return this._songData[songID.id]._ExpertPlus_SoloStandard;
                 default:
-                    throw new Exception("Unknown difficultry");
+                    return 0;
             }
         }
 

@@ -15,7 +15,7 @@ namespace HttpStatusExtention.PPCounters
 
         private float _scale;
         private float _shift;
-        private PPData _pPData;
+        private readonly PPData _pPData;
 
         public AccSaberCalculator(PPData pPData)
         {

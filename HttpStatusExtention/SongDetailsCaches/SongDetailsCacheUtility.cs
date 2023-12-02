@@ -146,8 +146,7 @@ namespace HttpStatusExtention.SongDetailsCaches
         public bool IsRank(string levelID, BeatmapDifficulty beatmapDifficulty, BeatDataCharacteristics beatDataCharacteristics)
         {
             var prevMap = SongCore.Loader.GetLevelById(levelID);
-            return prevMap != null
-&& prevMap is CustomPreviewBeatmapLevel custom && this.IsRank(custom, beatmapDifficulty, beatDataCharacteristics);
+            return prevMap != null && prevMap is CustomPreviewBeatmapLevel custom && this.IsRank(custom, beatmapDifficulty, beatDataCharacteristics);
         }
         [Inject]
         private void Constractor(PPDownloader downloader)

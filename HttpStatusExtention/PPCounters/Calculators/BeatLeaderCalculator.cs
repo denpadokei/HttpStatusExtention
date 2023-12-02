@@ -34,7 +34,7 @@ namespace HttpStatusExtention.PPCounters
 
         private readonly IDifficultyBeatmap difficultyBeatmap;
         private readonly GameplayModifiers gameplayModifiers;
-        private PPData _pPData;
+        private readonly PPData _pPData;
         [Inject]
         public BeatLeaderCalculator(PPData pPData, IDifficultyBeatmap difficultyBeatmap, RelativeScoreAndImmediateRankCounter relativeScoreAndImmediateRankCounter, GameplayModifiers gameplayModifiers)
         {

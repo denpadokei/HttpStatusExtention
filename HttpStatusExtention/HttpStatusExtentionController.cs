@@ -33,19 +33,47 @@ namespace HttpStatusExtention
         }
         private void SendPP()
         {
-            this.SendPP(this._relativeScoreAndImmediateRankCounter.relativeScore);
+            this.SendScoreSaberPP(this._relativeScoreAndImmediateRankCounter.relativeScore);
+            this.SendBeatLeaderPP(this._relativeScoreAndImmediateRankCounter.relativeScore);
+            this.SendAccSaberAP(this._relativeScoreAndImmediateRankCounter.relativeScore);
         }
 
-        private void SendPP(float relativeScore)
+        private void SendScoreSaberPP(float relativeScore)
         {
-            if (this._songRawPP == 0) {
+            if (this._scoreSaberRowPP == 0) {
                 return;
             }
             if (this._statusManager.StatusJSON["performance"] == null) {
                 this._statusManager.StatusJSON["performance"] = new JSONObject();
             }
             var jsonObject = this._statusManager.StatusJSON["performance"].AsObject;
-            jsonObject["current_pp"].AsFloat = this._scoreSaberCalculator.CalculatePP(this._songRawPP, relativeScore, this._scoreSaberCalculator.AllowedPositiveModifiers(this._levelID));
+            jsonObject["current_pp"].AsFloat = this._scoreSaberCalculator.CalculatePP(this._scoreSaberRowPP, relativeScore, this._failed);
+            this._statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
+        }
+
+        private void SendBeatLeaderPP(float accracy)
+        {
+            if (!this._isBeatLeaderRank) {
+                return;
+            }
+            if (this._statusManager.StatusJSON["performance"] == null) {
+                this._statusManager.StatusJSON["performance"] = new JSONObject();
+            }
+            var jsonObject = this._statusManager.StatusJSON["performance"].AsObject;
+            jsonObject["current_bl_pp"].AsFloat = this._beatLeaderCalculator.CalculatePP(this._songID, accracy, this._failed);
+            this._statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
+        }
+
+        private void SendAccSaberAP(float accracy)
+        {
+            if (!this._isAccSaberRank) {
+                return;
+            }
+            if (this._statusManager.StatusJSON["performance"] == null) {
+                this._statusManager.StatusJSON["performance"] = new JSONObject();
+            }
+            var jsonObject = this._statusManager.StatusJSON["performance"].AsObject;
+            jsonObject["current_acc_saber_ap"].AsFloat = this._accSaberCalculator.CalculateAP(this._scoreSaberRowPP, accracy);
             this._statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
         }
 
@@ -71,9 +99,9 @@ namespace HttpStatusExtention
         private async Task SetStarInfo(string levelID)
         {
             var multiplier = this._gameStatus.modifierMultiplier;
-            this._songRawPP = multiplier != 1 && !this._scoreSaberCalculator.AllowedPositiveModifiers(levelID)
-                ? 0
-                : (float)this._songDataUtil.GetPP(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty, this._currentBeatmapCharacteristics);
+            this._scoreSaberRowPP = this._ssData.GetPP(this._songID);
+            this._isBeatLeaderRank = this._beatLeaderData.IsRanked(this._songID);
+            this._isAccSaberRank = this._accSaberData.IsRanked(this._songID);
             this.SetCustomLabel(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty, this._currentBeatmapCharacteristics);
             this._currentStarSong = this._songDataUtil.GetBeatStarSong(this._currentCustomBeatmapLevel);
             this._currentStarSongDiff = this._songDataUtil.GetBeatStarSongDiffculityStats(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty, this._currentBeatmapCharacteristics);
@@ -86,7 +114,9 @@ namespace HttpStatusExtention
                 while (this._PPDownloader?.Init != true) {
                     await Task.Delay(1);
                 }
-                beatmapJson["pp"] = new JSONNumber(this._scoreSaberCalculator.CalculatePP(this._songRawPP, multiplier * 0.95f, this._scoreSaberCalculator.AllowedPositiveModifiers(levelID)));
+                beatmapJson["pp"] = new JSONNumber(this._scoreSaberCalculator.CalculatePP(this._scoreSaberRowPP, 0.95f));
+                beatmapJson["bl_pp"] = new JSONNumber(this._beatLeaderCalculator.CalculatePP(this._songID, 0.95f));
+                beatmapJson["acc_saber_ap"] = new JSONNumber(this._accSaberCalculator.CalculateAP(this._songID, 0.95f));
                 beatmapJson["star"] = new JSONNumber(this._currentStarSongDiff.Star);
                 beatmapJson["downloadCount"] = new JSONNumber(this._currentStarSong.DownloadCount);
                 beatmapJson["upVotes"] = new JSONNumber(this._currentStarSong.Upvotes);
@@ -138,6 +168,14 @@ namespace HttpStatusExtention
                 this._statusManager.EmitStatusUpdate(ChangedProperty.Beatmap, BeatSaberEvent.Resume);
             }
         }
+
+        private void OnGameEnergyCounter_gameEnergyDidReach0Event()
+        {
+            this._failed = true;
+            if (this._gameEnergyCounter != null) {
+                this._gameEnergyCounter.gameEnergyDidReach0Event -= this.OnGameEnergyCounter_gameEnergyDidReach0Event;
+            }
+        }
         #endregion
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
         #region // メンバ変数
@@ -154,12 +192,20 @@ namespace HttpStatusExtention
         private BeatDataCharacteristics _currentBeatmapCharacteristics;
         private BeatSongData _currentStarSong;
         private BeatSongDataDifficultyStats _currentStarSongDiff;
-        private float _songRawPP;
+        private float _scoreSaberRowPP;
+        private bool _isBeatLeaderRank;
+        private bool _isAccSaberRank;
         private string _levelID;
+        private bool _failed = false;
         private ScoreSaberCalculator _scoreSaberCalculator;
+        private SSData _ssData;
+        private BeatLeaderData _beatLeaderData;
+        private AccSaberData _accSaberData;
         private BeatLeaderCalculator _beatLeaderCalculator;
         private AccSaberCalculator _accSaberCalculator;
         private PPDownloader _PPDownloader;
+        private SongID _songID;
+        private IGameEnergyCounter _gameEnergyCounter;
         #endregion
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
         #region // 構築・破棄
@@ -175,7 +221,12 @@ namespace HttpStatusExtention
             PPDownloader pPDownloader,
             ScoreSaberCalculator scoreSaberCalculator,
             BeatLeaderCalculator beatLeaderCalculator,
-            AccSaberCalculator accSaberCalculator)
+            AccSaberCalculator accSaberCalculator,
+            SSData ssData,
+            BeatLeaderData beatLeaderData,
+            AccSaberData accSaberData,
+            IDifficultyBeatmap difficultyBeatmap,
+            IGameEnergyCounter gameEnergyCounter)
         {
             this._statusManager = statusManager;
             this._relativeScoreAndImmediateRankCounter = relativeScoreAndImmediateRankCounter;
@@ -188,7 +239,15 @@ namespace HttpStatusExtention
             this._beatLeaderCalculator = beatLeaderCalculator;
             this._accSaberCalculator = accSaberCalculator;
             this._PPDownloader = pPDownloader;
+            this._ssData = ssData;
+            this._beatLeaderData = beatLeaderData;
+            this._accSaberData = accSaberData;
+            this._gameEnergyCounter = gameEnergyCounter;
+            this._gameEnergyCounter.gameEnergyDidReach0Event += this.OnGameEnergyCounter_gameEnergyDidReach0Event;
+            var id = SongDataUtils.GetHash(difficultyBeatmap.level.levelID);
+            this._songID = new SongID(id, difficultyBeatmap.difficulty);
         }
+
         protected virtual void Dispose(bool disposing)
         {
             if (!this._disposedValue) {
