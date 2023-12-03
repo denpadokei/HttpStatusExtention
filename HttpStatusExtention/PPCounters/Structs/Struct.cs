@@ -29,7 +29,10 @@ namespace HttpStatusExtention.PPCounters
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(this.id, this.difficulty);
+            var hashCode = 2041928400;
+            hashCode = hashCode * -1521134295 + EqualityComparer<string>.Default.GetHashCode(this.id);
+            hashCode = hashCode * -1521134295 + this.difficulty.GetHashCode();
+            return hashCode;
         }
 
         public static bool operator ==(SongID left, SongID right)
