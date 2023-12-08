@@ -3,14 +3,14 @@
   "id": "HttpStatusExtention",
   "name": "HttpStatusExtention",
   "author": "denpadokei",
-  "version": "8.0.0",
+  "version": "9.0.0",
   "description": "",
-  "gameVersion": "1.33.0",
+  "gameVersion": "1.34.0",
   "dependsOn": {
     "BSIPA": "^4.3.2",
     "SongDetailsCache": "^1.2.2",
     "SiraUtil": "^3.1.6",
     "SongCore": "^3.11.0",
-    "HttpSiraStatus": "^10.0.0"
+    "HttpSiraStatus": "^11.0.0"
   }
 }
