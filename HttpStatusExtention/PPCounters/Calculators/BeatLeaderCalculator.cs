@@ -31,16 +31,19 @@ namespace HttpStatusExtention.PPCounters
         private float _powerBottom;
         private BeatLeaderRating _rating;
         private float _passPP;
-
-        private readonly IDifficultyBeatmap difficultyBeatmap;
         private readonly GameplayModifiers gameplayModifiers;
         private readonly PPData _pPData;
+        private BeatmapLevel _level;
+        private BeatmapKey _key;
+
+
         [Inject]
-        public BeatLeaderCalculator(PPData pPData, IDifficultyBeatmap difficultyBeatmap, RelativeScoreAndImmediateRankCounter relativeScoreAndImmediateRankCounter, GameplayModifiers gameplayModifiers)
+        public BeatLeaderCalculator(PPData pPData, RelativeScoreAndImmediateRankCounter relativeScoreAndImmediateRankCounter, GameplayModifiers gameplayModifiers, GameplayCoreSceneSetupData gameplayCoreSceneSetupData)
         {
-            this.difficultyBeatmap = difficultyBeatmap;
             this.gameplayModifiers = gameplayModifiers;
             this._pPData = pPData;
+            _level = gameplayCoreSceneSetupData.beatmapLevel;
+            _key = gameplayCoreSceneSetupData.beatmapKey;
         }
 
         public void SetCurve(BeatLeader beatLeader, SongID songID, GameplayModifiers modifiers)
@@ -169,8 +172,8 @@ namespace HttpStatusExtention.PPCounters
             while (this._pPData?.CurveInit != true) {
                 await Task.Delay(1);
             }
-            var id = SongDataUtils.GetHash(this.difficultyBeatmap.level.levelID);
-            this.SetCurve(this._pPData.Curves.BeatLeader, new SongID(id, this.difficultyBeatmap.difficulty), this.gameplayModifiers);
+            var id = SongDataUtils.GetHash(this._level.levelID);
+            this.SetCurve(this._pPData.Curves.BeatLeader, new SongID(id, this._key.difficulty), this.gameplayModifiers);
         }
     }
 }

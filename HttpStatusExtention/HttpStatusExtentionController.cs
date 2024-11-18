@@ -82,14 +82,17 @@ namespace HttpStatusExtention
             Plugin.Log.Debug($"Setup start.");
             this._gamePause.didResumeEvent += this.OnGameResume;
             this._relativeScoreAndImmediateRankCounter.relativeScoreOrImmediateRankDidChangeEvent += this.RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent;
-            var beatmapLevel = this._gameplayCoreSceneSetupData.difficultyBeatmap.level;
-            var key = this._gameplayCoreSceneSetupData.difficultyBeatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
+            var beatmapLevel = this._gameplayCoreSceneSetupData.beatmapLevel;
+            var beatmapKey = this._gameplayCoreSceneSetupData.beatmapKey;
+            var key = beatmapKey.beatmapCharacteristic.serializedName;
+            //this._gameplayCoreSceneSetupData.difficultyBeatmap.parentDifficultyBeatmapSet.beatmapCharacteristic.serializedName;
             this._currentBeatmapCharacteristics = Enum.GetValues(typeof(BeatDataCharacteristics)).OfType<BeatDataCharacteristics>().FirstOrDefault(x => x.GetDescription() == key);
-            this._currentBeatmapDifficulty = this._gameplayCoreSceneSetupData.difficultyBeatmap.difficulty;
+            this._currentBeatmapDifficulty = beatmapKey.difficulty;
+            //this._gameplayCoreSceneSetupData.difficultyBeatmap.difficulty;
             this._levelID = beatmapLevel.levelID;
 
             var previewBeatmap = Loader.GetLevelById(beatmapLevel.levelID);
-            this._currentCustomBeatmapLevel = previewBeatmap as CustomPreviewBeatmapLevel;
+            this._currentCustomBeatmapLevel = previewBeatmap;
             if (this._currentCustomBeatmapLevel != null) {
                 await this.SetStarInfo(this._levelID);
             }
@@ -130,7 +133,7 @@ namespace HttpStatusExtention
             this.SendPP();
         }
 
-        private void SetCustomLabel(CustomPreviewBeatmapLevel beatmap, BeatmapDifficulty diff, BeatDataCharacteristics beatDataCharacteristics)
+        private void SetCustomLabel(BeatmapLevel beatmap, BeatmapDifficulty diff, BeatDataCharacteristics beatDataCharacteristics)
         {
             if (beatmap == null) {
                 return;
@@ -187,7 +190,7 @@ namespace HttpStatusExtention
         private IAudioTimeSource _audioTimeSource;
         private GameplayCoreSceneSetupData _gameplayCoreSceneSetupData;
         private ISongDataUtil _songDataUtil;
-        private CustomPreviewBeatmapLevel _currentCustomBeatmapLevel;
+        private BeatmapLevel _currentCustomBeatmapLevel;
         private BeatmapDifficulty _currentBeatmapDifficulty;
         private BeatDataCharacteristics _currentBeatmapCharacteristics;
         private BeatSongData _currentStarSong;
@@ -225,7 +228,6 @@ namespace HttpStatusExtention
             SSData ssData,
             BeatLeaderData beatLeaderData,
             AccSaberData accSaberData,
-            IDifficultyBeatmap difficultyBeatmap,
             IGameEnergyCounter gameEnergyCounter)
         {
             this._statusManager = statusManager;
@@ -244,8 +246,10 @@ namespace HttpStatusExtention
             this._accSaberData = accSaberData;
             this._gameEnergyCounter = gameEnergyCounter;
             this._gameEnergyCounter.gameEnergyDidReach0Event += this.OnGameEnergyCounter_gameEnergyDidReach0Event;
-            var id = SongDataUtils.GetHash(difficultyBeatmap.level.levelID);
-            this._songID = new SongID(id, difficultyBeatmap.difficulty);
+            var level = gameplayCoreSceneSetupData.beatmapLevel;
+            var key = gameplayCoreSceneSetupData.beatmapKey;
+            var id = SongDataUtils.GetHash(level.levelID);
+            this._songID = new SongID(id, key.difficulty);
         }
 
         protected virtual void Dispose(bool disposing)

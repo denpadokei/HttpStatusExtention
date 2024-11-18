@@ -19,7 +19,7 @@ namespace HttpStatusExtention.SongDetailsCaches
         private PPDownloader _downloader = null;
         private volatile bool _init = false;
 
-        public BeatSongData GetBeatStarSong(CustomPreviewBeatmapLevel beatmapLevel)
+        public BeatSongData GetBeatStarSong(BeatmapLevel beatmapLevel)
         {
             if (!this._init) {
                 return null;
@@ -87,7 +87,7 @@ namespace HttpStatusExtention.SongDetailsCaches
             return this.GetBeatStarSongDiffculityStats(song, difficulty, BeatDataCharacteristics.Standard);
         }
 
-        public BeatSongDataDifficultyStats GetBeatStarSongDiffculityStats(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty)
+        public BeatSongDataDifficultyStats GetBeatStarSongDiffculityStats(BeatmapLevel beatmapLevel, BeatmapDifficulty difficulty)
         {
             return this.GetBeatStarSongDiffculityStats(beatmapLevel, difficulty, BeatDataCharacteristics.Standard);
         }
@@ -99,13 +99,13 @@ namespace HttpStatusExtention.SongDetailsCaches
                 : !dic.TryGetValue(BeatMapCoreConverter.ConvertToBeatMapDifficulity(difficulty), out var result) ? null : result;
         }
 
-        public BeatSongDataDifficultyStats GetBeatStarSongDiffculityStats(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty, BeatDataCharacteristics beatDataCharacteristics)
+        public BeatSongDataDifficultyStats GetBeatStarSongDiffculityStats(BeatmapLevel beatmapLevel, BeatmapDifficulty difficulty, BeatDataCharacteristics beatDataCharacteristics)
         {
             var song = this.GetBeatStarSong(beatmapLevel);
             return song == null ? null : this.GetBeatStarSongDiffculityStats(song, difficulty, beatDataCharacteristics);
         }
 
-        public double GetPP(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty difficulty, BeatDataCharacteristics beatDataCharacteristics)
+        public double GetPP(BeatmapLevel beatmapLevel, BeatmapDifficulty difficulty, BeatDataCharacteristics beatDataCharacteristics)
         {
             if (beatDataCharacteristics == BeatDataCharacteristics.Standard && this._downloader.Init && this._downloader.RowPPs.TryGetValue(beatmapLevel.GetHashOrLevelID().ToUpper(), out var pp)) {
                 // PP counterと同じ処理
@@ -137,7 +137,7 @@ namespace HttpStatusExtention.SongDetailsCaches
             });
         }
 
-        public bool IsRank(CustomPreviewBeatmapLevel beatmapLevel, BeatmapDifficulty beatmapDifficulty, BeatDataCharacteristics beatDataCharacteristics)
+        public bool IsRank(BeatmapLevel beatmapLevel, BeatmapDifficulty beatmapDifficulty, BeatDataCharacteristics beatDataCharacteristics)
         {
             var song = this.GetBeatStarSong(beatmapLevel);
             return this.GetBeatStarSongDiffculityStats(song, beatmapDifficulty, beatDataCharacteristics).Ranked;
@@ -146,7 +146,7 @@ namespace HttpStatusExtention.SongDetailsCaches
         public bool IsRank(string levelID, BeatmapDifficulty beatmapDifficulty, BeatDataCharacteristics beatDataCharacteristics)
         {
             var prevMap = SongCore.Loader.GetLevelById(levelID);
-            return prevMap != null && prevMap is CustomPreviewBeatmapLevel custom && this.IsRank(custom, beatmapDifficulty, beatDataCharacteristics);
+            return prevMap != null && prevMap is BeatmapLevel custom && this.IsRank(custom, beatmapDifficulty, beatDataCharacteristics);
         }
         [Inject]
         private void Constractor(PPDownloader downloader)

@@ -11,7 +11,9 @@ namespace HttpStatusExtention.PPCounters
     {
         [Inject] private readonly SSData ssData;
         private readonly RelativeScoreAndImmediateRankCounter relativeScoreAndImmediateRank;
-        private readonly IDifficultyBeatmap difficultyBeatmap;
+        //private readonly IDifficultyBeatmap difficultyBeatmap;
+        private BeatmapLevel _level;
+        private BeatmapKey _key;
         private readonly GameplayModifiers gameplayModifiers;
         private readonly PPData ppData;
 
@@ -22,9 +24,10 @@ namespace HttpStatusExtention.PPCounters
         private float _multiplier;
 
         [Inject]
-        public ScoreSaberCalculator(IDifficultyBeatmap difficultyBeatmap, RelativeScoreAndImmediateRankCounter relativeScoreAndImmediateRankCounter, GameplayModifiers gameplayModifiers, PPData pPData)
+        public ScoreSaberCalculator(GameplayCoreSceneSetupData gameplayCoreSceneSetupData, RelativeScoreAndImmediateRankCounter relativeScoreAndImmediateRankCounter, GameplayModifiers gameplayModifiers, PPData pPData)
         {
-            this.difficultyBeatmap = difficultyBeatmap;
+            _level = gameplayCoreSceneSetupData.beatmapLevel;
+            _key = gameplayCoreSceneSetupData.beatmapKey;
             this.gameplayModifiers = gameplayModifiers;
             this.relativeScoreAndImmediateRank = relativeScoreAndImmediateRankCounter;
             this.ppData = pPData;
@@ -35,8 +38,8 @@ namespace HttpStatusExtention.PPCounters
             if (this.ppData?.CurveInit != true) {
                 await Task.Delay(1);
             }
-            var id = SongDataUtils.GetHash(this.difficultyBeatmap.level.levelID);
-            this.SetCurve(this.ppData.Curves.ScoreSaber, new SongID(id, this.difficultyBeatmap.difficulty), this.relativeScoreAndImmediateRank._gameplayModifiersModel, this.gameplayModifiers);
+            var id = SongDataUtils.GetHash(this._level.levelID);
+            this.SetCurve(this.ppData.Curves.ScoreSaber, new SongID(id, this._key.difficulty), this.relativeScoreAndImmediateRank._gameplayModifiersModel, this.gameplayModifiers);
         }
 
         public void SetCurve(ScoreSaber scoreSaber, SongID songID, GameplayModifiersModelSO gameplayModifiersModelSO, GameplayModifiers gameplayModifiers)
