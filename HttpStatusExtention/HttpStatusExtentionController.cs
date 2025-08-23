@@ -138,7 +138,7 @@ namespace HttpStatusExtention
             if (beatmap == null) {
                 return;
             }
-            var songData = Collections.RetrieveExtraSongData(SongCore.Utilities.Hashing.GetCustomLevelHash(beatmap));
+            var songData = Collections.GetCustomLevelSongData(beatmap.levelID);
             var diffData = songData._difficulties?.FirstOrDefault(x => x._beatmapCharacteristicName == beatDataCharacteristics.GetDescription() && x._difficulty == diff);
             var currentDiffLabel = diffData?._difficultyLabel;
             if (string.IsNullOrEmpty(currentDiffLabel)) {
