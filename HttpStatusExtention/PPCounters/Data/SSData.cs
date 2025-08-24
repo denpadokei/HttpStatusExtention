@@ -32,21 +32,21 @@ namespace HttpStatusExtention.PPCounters
 
         public float GetPP(SongID songID)
         {
-            if (!this.DataInit) {
+            if (!this.DataInit || !this._songData.TryGetValue(songID.id, out var data)) {
                 return 0f;
             }
 
             switch (songID.difficulty) {
                 case BeatmapDifficulty.Easy:
-                    return this._songData[songID.id]._Easy_SoloStandard;
+                    return data._Easy_SoloStandard;
                 case BeatmapDifficulty.Normal:
-                    return this._songData[songID.id]._Normal_SoloStandard;
+                    return data._Normal_SoloStandard;
                 case BeatmapDifficulty.Hard:
-                    return this._songData[songID.id]._Hard_SoloStandard;
+                    return data._Hard_SoloStandard;
                 case BeatmapDifficulty.Expert:
-                    return this._songData[songID.id]._Expert_SoloStandard;
+                    return data._Expert_SoloStandard;
                 case BeatmapDifficulty.ExpertPlus:
-                    return this._songData[songID.id]._ExpertPlus_SoloStandard;
+                    return data._ExpertPlus_SoloStandard;
                 default:
                     return 0;
             }
