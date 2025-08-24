@@ -1,43 +1,25 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="$(MSBuildProjectFullPath).user" Condition="Exists('$(MSBuildProjectFullPath).user')"/>
+  
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{56DA414F-1B2A-44FC-BF87-1FAB0BA34C96}</ProjectGuid>
+    <TargetFramework>net48</TargetFramework>
+    <!-- Some features of the latest version of C# aren't available in Beat Saber. Refer to the unity docs for info -->
+    <!-- https://docs.unity3d.com/2022.3/Documentation/Manual/CSharpCompiler.html -->
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>HttpStatusExtention</RootNamespace>
     <AssemblyName>HttpStatusExtention</AssemblyName>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <DebugSymbols>true</DebugSymbols>
     <DebugType>portable</DebugType>
-    <LocalRefsDir Condition="Exists('..\Refs')">..\Refs</LocalRefsDir>
-    <BeatSaberDir>$(LocalRefsDir)</BeatSaberDir>
-    <AppOutputBase>$(MSBuildProjectDirectory)\</AppOutputBase>
-    <!--<PathMap>$(AppOutputBase)=X:\$(AssemblyName)\</PathMap>-->
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition="$(DefineConstants.Contains('CIBuild')) OR '$(NCrunch)' == '1'">
-    <DisableCopyToPlugins>True</DisableCopyToPlugins>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(NCrunch)' == '1'">
-    <DisableCopyToPlugins>True</DisableCopyToPlugins>
-    <DisableZipRelease>True</DisableZipRelease>
+    <!--    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>-->
+    <EnableFrameworkPathOverride>true</EnableFrameworkPathOverride>
+    <FrameworkPathOverride>$(BeatSaberDir)\Beat Saber_Data\Managed</FrameworkPathOverride>
+    <MarkPackageReferencesAsExternallyResolved>false</MarkPackageReferencesAsExternallyResolved>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="0Harmony, Version=2.5.0.0, Culture=neutral, processorArchitecture=MSIL">
@@ -116,6 +98,7 @@
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="Main">
       <HintPath>$(BeatSaberDir)\Beat Saber_Data\Managed\Main.dll</HintPath>
       <Private>False</Private>
@@ -178,39 +161,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Converters\BeatMapCoreConverter.cs" />
-    <Compile Include="Converters\SongDetailsConveter.cs" />
-    <Compile Include="Extentions\BeatmapLevelExtention.cs" />
-    <Compile Include="HarmonyPathces\SRMConigPatch.cs" />
-    <Compile Include="Installer\HttpStatusExtentionInstaller.cs" />
-    <Compile Include="Installer\HttpStatusExtentionMenuAndGameInstaller.cs" />
-    <Compile Include="Installer\HttpStatusExtentionAppInstaller.cs" />
-    <Compile Include="Models\CoroutineManager.cs" />
-    <Compile Include="Models\Enums.cs" />
-    <Compile Include="Models\BeatSongData.cs" />
-    <Compile Include="Models\BeatSongDataDifficultyStats.cs" />
-    <Compile Include="Networks\WebClient.cs" />
-    <Compile Include="Plugin.cs" />
-    <Compile Include="HttpStatusExtentionController.cs" />
-    <Compile Include="PPCounters\Calculators\AccSaberCalculator.cs" />
-    <Compile Include="PPCounters\Calculators\BeatLeaderCalculator.cs" />
-    <Compile Include="PPCounters\Calculators\ScoreSaberCalculator.cs" />
-    <Compile Include="PPCounters\CurveUtils.cs" />
-    <Compile Include="PPCounters\Data\AccSaberData.cs" />
-    <Compile Include="PPCounters\Data\BeatLeaderData.cs" />
-    <Compile Include="PPCounters\Data\PPData.cs" />
-    <Compile Include="PPCounters\Data\SSData.cs" />
-    <Compile Include="PPCounters\GameplayModifierUtils.cs" />
-    <Compile Include="PPCounters\OSUtils.cs" />
-    <Compile Include="PPCounters\PPDownloader.cs" />
-    <Compile Include="PPCounters\SongDataUtils.cs" />
-    <Compile Include="PPCounters\Structs\Struct.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Interfaces\ISongDataUtil.cs" />
-    <Compile Include="SongDetailsCaches\SongDetailsCacheUtility.cs" />
-    <Compile Include="SRMQueueStatus.cs" />
-  </ItemGroup>
-  <ItemGroup>
     <EmbeddedResource Include="manifest.json" />
   </ItemGroup>
   <ItemGroup>
@@ -226,6 +176,4 @@
     </PackageReference>
     <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.1" PrivateAssets="all" />
   </ItemGroup>
-  <ItemGroup />
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
