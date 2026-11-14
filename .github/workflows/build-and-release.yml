@@ -118,7 +118,7 @@ jobs:
             $dll = @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter 'HttpStatusExtention.dll' -ErrorAction SilentlyContinue |
               Where-Object { $_.FullName -notmatch '\\obj\\' } |
               Sort-Object LastWriteTime -Descending)[0]
-            if (-not $dll) { throw "Build output not found under $root: HttpStatusExtention.dll" }
+            if (-not $dll) { throw "Build output not found under ${root}: HttpStatusExtention.dll" }
 
             $layout = Join-Path $env:RUNNER_TEMP 'layout'
             New-Item -ItemType Directory -Force -Path (Join-Path $layout 'Plugins') | Out-Null
