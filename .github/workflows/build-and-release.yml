@@ -101,37 +101,37 @@ jobs:
         run: |
           $manifest = Get-Content 'HttpStatusExtention\manifest.json' -Raw | ConvertFrom-Json
           $name = '{0}-{1}-bs{2}' -f $manifest.id, $manifest.version, $manifest.gameVersion
+          $root = '${{ github.workspace }}\HttpStatusExtention'
+          if (-not (Test-Path -LiteralPath $root)) { throw "Project directory not found: $root" }
 
           # CI (GITHUB_ACTIONS) では BSMT が ZipRelease を無効化し、Artifact ディレクトリに
           # Plugins レイアウトを組み立てる。無い場合はビルド済み DLL から同じレイアウトを作る。
-          $artifact = Get-ChildItem '${{ github.workspace }}\HttpStatusExtention\bin\Release' -Recurse -Directory -Filter Artifact -ErrorAction SilentlyContinue |
-            Sort-Object LastWriteTime -Descending |
-            Select-Object -First 1
-
-          $layout = Join-Path $env:RUNNER_TEMP 'layout'
-          if (Test-Path $layout) { Remove-Item $layout -Recurse -Force }
-          if ($artifact) {
-            Copy-Item (Join-Path $artifact.FullName '*') $layout -Recurse -Force
-          } else {
-            $dll = Get-ChildItem '${{ github.workspace }}\HttpStatusExtention\bin\Release' -Recurse -File -Filter 'HttpStatusExtention.dll' -ErrorAction SilentlyContinue |
-              Where-Object { $_.FullName -notmatch '\\obj\\' } |
-              Sort-Object LastWriteTime -Descending |
-              Select-Object -First 1
-            if (-not $dll) { throw 'Build output not found: HttpStatusExtention.dll' }
-            $plugins = Join-Path $layout 'Plugins'
-            New-Item -ItemType Directory -Force -Path $plugins | Out-Null
-            Copy-Item $dll.FullName $plugins
-            $pdb = [System.IO.Path]::ChangeExtension($dll.FullName, '.pdb')
-            if (Test-Path $pdb) { Copy-Item $pdb $plugins }
-          }
+          $artifact = @(Get-ChildItem -LiteralPath $root -Recurse -Directory -Filter 'Artifact' -ErrorAction SilentlyContinue |
+            Sort-Object { $_.FullName.Length } -Descending)[0]
 
           $zip = Join-Path $env:RUNNER_TEMP "$name.zip"
-          Compress-Archive -Path (Join-Path $layout '*') -DestinationPath $zip -Force
+          if ($artifact) {
+            Write-Host "Packaging artifact directory: $($artifact.FullName)"
+            Get-ChildItem -LiteralPath $artifact.FullName -Recurse -File | ForEach-Object { Write-Host "  " $_.FullName.Substring($artifact.FullName.Length + 1) }
+            Compress-Archive -Path (Join-Path $artifact.FullName '*') -DestinationPath $zip -Force
+          } else {
+            $dll = @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter 'HttpStatusExtention.dll' -ErrorAction SilentlyContinue |
+              Where-Object { $_.FullName -notmatch '\\obj\\' } |
+              Sort-Object LastWriteTime -Descending)[0]
+            if (-not $dll) { throw "Build output not found under $root: HttpStatusExtention.dll" }
+
+            $layout = Join-Path $env:RUNNER_TEMP 'layout'
+            New-Item -ItemType Directory -Force -Path (Join-Path $layout 'Plugins') | Out-Null
+            Copy-Item -LiteralPath $dll.FullName -Destination (Join-Path $layout 'Plugins') -Force
+            $pdb = [System.IO.Path]::ChangeExtension($dll.FullName, '.pdb')
+            if (Test-Path -LiteralPath $pdb) { Copy-Item -LiteralPath $pdb -Destination (Join-Path $layout 'Plugins') -Force }
+            Write-Host "Packaging build output: $($dll.FullName)"
+            Compress-Archive -Path (Join-Path $layout '*') -DestinationPath $zip -Force
+          }
 
           "zip-path=$zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "zip-name=$name" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           Write-Host "Package: $zip"
-          Get-ChildItem $layout -Recurse -File | ForEach-Object { Write-Host "  " $_.FullName.Substring($layout.Length + 1) }
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v7
