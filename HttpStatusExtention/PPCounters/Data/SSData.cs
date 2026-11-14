@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using HttpStatusExtention.Models;
+using Newtonsoft.Json;
 using SiraUtil.Zenject;
 using System;
 using System.Collections.Generic;
@@ -16,18 +17,33 @@ namespace HttpStatusExtention.PPCounters
         private IReadOnlyDictionary<string, RawPPData> _songData = new Dictionary<string, RawPPData>();
 
         private static readonly string SS_PP_FILE_NAME = Path.Combine(Environment.CurrentDirectory, "UserData", "HttpStatusExtention", "pp.json");
+        private readonly TaskCompletionSource<bool> _ready = new TaskCompletionSource<bool>();
 
         public async Task InitializeAsync(CancellationToken token)
         {
-            this.LoadPPFile();
-            while (this._ppDownloader?.Init != true) {
-                await Task.Delay(1);
+            try {
+                this.LoadPPFile();
+
+                if (!await this._ppDownloader.WaitForInitializationAsync(token)) {
+                    return;
+                }
+
+                if (this._ppDownloader.HasRawPPData) {
+                    lock (this._songData) {
+                        this._songData = this._ppDownloader.RowPPs;
+                        this.DataInit = true;
+                        this.WritePPFile();
+                    }
+                }
             }
-            lock (this._songData) {
-                this._songData = this._ppDownloader.RowPPs;
-                this.DataInit = true;
-                this.WritePPFile();
+            finally {
+                _ = this._ready.TrySetResult(true);
             }
+        }
+
+        public Task<bool> WaitForReadyAsync(CancellationToken token)
+        {
+            return TaskUtils.WaitAsync(this._ready.Task, token);
         }
 
         public float GetPP(SongID songID)
@@ -61,16 +77,18 @@ namespace HttpStatusExtention.PPCounters
         {
             if (File.Exists(SS_PP_FILE_NAME)) {
                 try {
-                    lock (this._songData) {
-                        if (!this.DataInit) {
-                            var json = JsonConvert.DeserializeObject<Dictionary<string, RawPPData>>(File.ReadAllText(SS_PP_FILE_NAME));
-                            this._songData = json;
-                            this.DataInit = true;
+                    var json = JsonConvert.DeserializeObject<Dictionary<string, RawPPData>>(File.ReadAllText(SS_PP_FILE_NAME));
+                    if (json != null && json.Count > 0) {
+                        lock (this._songData) {
+                            if (!this.DataInit) {
+                                this._songData = json;
+                                this.DataInit = true;
+                            }
                         }
                     }
                 }
-
-                catch (Exception) {
+                catch (Exception e) {
+                    Plugin.Log.Warn($"Failed to load ScoreSaber PP cache: {e.Message}");
                 }
             }
         }

@@ -28,7 +28,9 @@ namespace HttpStatusExtention.SongDetailsCaches
             if (hash.Length != 40) {
                 return null;
             }
-            _ = this._songDetails.songs.FindByHash(hash, out var song);
+            if (!this._songDetails.songs.FindByHash(hash, out var song)) {
+                return null;
+            }
             var result = new BeatSongData
             {
                 Characteristics = new ConcurrentDictionary<BeatDataCharacteristics, ConcurrentDictionary<BeatMapDifficulty, BeatSongDataDifficultyStats>>()
@@ -94,6 +96,9 @@ namespace HttpStatusExtention.SongDetailsCaches
 
         public BeatSongDataDifficultyStats GetBeatStarSongDiffculityStats(BeatSongData song, BeatmapDifficulty difficulty, BeatDataCharacteristics beatDataCharacteristics)
         {
+            if (song?.Characteristics == null) {
+                return null;
+            }
             return !song.Characteristics.TryGetValue(beatDataCharacteristics, out var dic)
                 ? null
                 : !dic.TryGetValue(BeatMapCoreConverter.ConvertToBeatMapDifficulity(difficulty), out var result) ? null : result;
@@ -140,7 +145,7 @@ namespace HttpStatusExtention.SongDetailsCaches
         public bool IsRank(BeatmapLevel beatmapLevel, BeatmapDifficulty beatmapDifficulty, BeatDataCharacteristics beatDataCharacteristics)
         {
             var song = this.GetBeatStarSong(beatmapLevel);
-            return this.GetBeatStarSongDiffculityStats(song, beatmapDifficulty, beatDataCharacteristics).Ranked;
+            return this.GetBeatStarSongDiffculityStats(song, beatmapDifficulty, beatDataCharacteristics)?.Ranked == true;
         }
 
         public bool IsRank(string levelID, BeatmapDifficulty beatmapDifficulty, BeatDataCharacteristics beatDataCharacteristics)

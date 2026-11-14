@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using HttpStatusExtention.Models;
+using Newtonsoft.Json;
 using SiraUtil.Zenject;
 using System;
 using System.IO;
@@ -17,35 +18,54 @@ namespace HttpStatusExtention.PPCounters
         public Leaderboards Curves { get; private set; } = new Leaderboards();
 
         private static readonly string CURVE_FILE_NAME = Path.Combine(Environment.CurrentDirectory, "UserData", "HttpStatusExtention", "curves.json");
+        private readonly TaskCompletionSource<bool> _ready = new TaskCompletionSource<bool>();
 
         public async Task InitializeAsync(CancellationToken token)
         {
-            this.LoadCurveFile();
-            while (this._ppDownloader?.Init != true) {
-                await Task.Delay(1);
+            try {
+                this.LoadCurveFile();
+
+                // ダウンロードが終わるまで (または失敗が確定するまで) 待つ。
+                // 失敗しても PPDownloader.Init は true になるので、ここで止まり続けることはない。
+                if (!await this._ppDownloader.WaitForInitializationAsync(token)) {
+                    return;
+                }
+
+                if (this._ppDownloader.HasValidCurves) {
+                    lock (this.Curves) {
+                        this.Curves = this._ppDownloader.Curves;
+                        this.CurveInit = true;
+                        this.WriteCurveFile();
+                    }
+                }
             }
-            lock (this.Curves) {
-                this.Curves = this._ppDownloader.Curves;
-                this.CurveInit = true;
-                this.WriteCurveFile();
+            finally {
+                _ = this._ready.TrySetResult(true);
             }
+        }
+
+        public Task<bool> WaitForReadyAsync(CancellationToken token)
+        {
+            return TaskUtils.WaitAsync(this._ready.Task, token);
         }
 
         private void LoadCurveFile()
         {
             if (File.Exists(CURVE_FILE_NAME)) {
                 try {
-
-                    lock (this.Curves) {
-                        if (!this.CurveInit) {
-                            var jsonString = File.ReadAllText(CURVE_FILE_NAME);
-                            this.Curves = JsonConvert.DeserializeObject<Leaderboards>(jsonString);
-                            this.CurveInit = true;
+                    var jsonString = File.ReadAllText(CURVE_FILE_NAME);
+                    var curves = JsonConvert.DeserializeObject<Leaderboards>(jsonString);
+                    if (PPDownloader.IsValidCurves(curves)) {
+                        lock (this.Curves) {
+                            if (!this.CurveInit) {
+                                this.Curves = curves;
+                                this.CurveInit = true;
+                            }
                         }
                     }
                 }
-                catch (Exception) {
-
+                catch (Exception e) {
+                    Plugin.Log.Warn($"Failed to load curve cache: {e.Message}");
                 }
             }
         }

@@ -31,6 +31,7 @@ namespace HttpStatusExtention.PPCounters
         private float _powerBottom;
         private BeatLeaderRating _rating;
         private float _passPP;
+        private bool _ready;
         private readonly GameplayModifiers gameplayModifiers;
         private readonly PPData _pPData;
         private BeatmapLevel _level;
@@ -48,6 +49,10 @@ namespace HttpStatusExtention.PPCounters
 
         public void SetCurve(BeatLeader beatLeader, SongID songID, GameplayModifiers modifiers)
         {
+            if (beatLeader?.accCurve == null || beatLeader.accCurve.Count < 2) {
+                return;
+            }
+
             this._accCurve = beatLeader.accCurve;
             this._accMultiplier = beatLeader.accMultiplier;
 
@@ -71,6 +76,7 @@ namespace HttpStatusExtention.PPCounters
             this._passPP = this.GetPassPP(this._rating.passRating * this._modifierMultiplier);
 
             this._accSlopes = CurveUtils.GetSlopes(this._accCurve);
+            this._ready = this._accSlopes.Length > 0;
         }
 
         public bool IsRanked(SongID songID)
@@ -78,9 +84,15 @@ namespace HttpStatusExtention.PPCounters
             return this.beatLeaderData.IsRanked(songID);
         }
 
+        public bool IsReady => this._ready;
+
         // hopefully this doesn't take too long to run...
         public float CalculatePP(SongID songID, float accuracy, bool failed = false)
         {
+            if (!this._ready) {
+                return 0f;
+            }
+
             var multiplier = this._modifierMultiplier + (failed ? this._modifiersMap.nf : 0);
 
             var passPP = this._passPP;
@@ -169,8 +181,14 @@ namespace HttpStatusExtention.PPCounters
 
         public async Task InitializeAsync(CancellationToken token)
         {
-            while (this._pPData?.CurveInit != true) {
-                await Task.Delay(1);
+            if (!await this._pPData.WaitForReadyAsync(token)) {
+                return;
+            }
+            if (!await this.beatLeaderData.WaitForReadyAsync(token)) {
+                return;
+            }
+            if (!this._pPData.CurveInit || this._pPData.Curves?.BeatLeader == null) {
+                return;
             }
             var id = SongDataUtils.GetHash(this._level.levelID);
             this.SetCurve(this._pPData.Curves.BeatLeader, new SongID(id, this._key.difficulty), this.gameplayModifiers);
