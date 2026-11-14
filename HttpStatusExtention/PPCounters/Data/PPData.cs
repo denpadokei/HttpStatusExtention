@@ -11,7 +11,6 @@ namespace HttpStatusExtention.PPCounters
 {
     public class PPData : IAsyncInitializable
     {
-        public bool DataInit { get; private set; } = false;
         public bool CurveInit { get; private set; } = false;
         [Inject] private readonly PPDownloader _ppDownloader;
 
@@ -19,6 +18,7 @@ namespace HttpStatusExtention.PPCounters
 
         private static readonly string CURVE_FILE_NAME = Path.Combine(Environment.CurrentDirectory, "UserData", "HttpStatusExtention", "curves.json");
         private readonly TaskCompletionSource<bool> _ready = new TaskCompletionSource<bool>();
+        private readonly object _sync = new object();
 
         public async Task InitializeAsync(CancellationToken token)
         {
@@ -32,11 +32,11 @@ namespace HttpStatusExtention.PPCounters
                 }
 
                 if (this._ppDownloader.HasValidCurves) {
-                    lock (this.Curves) {
+                    lock (this._sync) {
                         this.Curves = this._ppDownloader.Curves;
                         this.CurveInit = true;
-                        this.WriteCurveFile();
                     }
+                    this.WriteCurveFile();
                 }
             }
             finally {
@@ -56,7 +56,7 @@ namespace HttpStatusExtention.PPCounters
                     var jsonString = File.ReadAllText(CURVE_FILE_NAME);
                     var curves = JsonConvert.DeserializeObject<Leaderboards>(jsonString);
                     if (PPDownloader.IsValidCurves(curves)) {
-                        lock (this.Curves) {
+                        lock (this._sync) {
                             if (!this.CurveInit) {
                                 this.Curves = curves;
                                 this.CurveInit = true;
@@ -72,7 +72,16 @@ namespace HttpStatusExtention.PPCounters
 
         private void WriteCurveFile()
         {
-            OSUtils.WriteFile(this.Curves, CURVE_FILE_NAME);
+            var curves = this.Curves;
+            _ = Task.Run(() =>
+            {
+                try {
+                    OSUtils.WriteFile(curves, CURVE_FILE_NAME);
+                }
+                catch (Exception e) {
+                    Plugin.Log.Warn($"Failed to write curve cache: {e.Message}");
+                }
+            });
         }
     }
 }

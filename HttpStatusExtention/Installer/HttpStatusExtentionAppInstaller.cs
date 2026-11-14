@@ -15,6 +15,7 @@ namespace HttpStatusExtention.Installers
             _ = this.Container.BindInterfacesAndSelfTo<PPData>().AsSingle().NonLazy();
             _ = this.Container.BindInterfacesAndSelfTo<SSData>().AsSingle().NonLazy();
             _ = this.Container.BindInterfacesAndSelfTo<AccSaberData>().AsSingle().NonLazy();
+            _ = this.Container.BindInterfacesAndSelfTo<BeatLeaderData>().AsSingle().NonLazy();
         }
     }
 }

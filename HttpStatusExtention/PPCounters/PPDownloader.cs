@@ -84,50 +84,92 @@ namespace HttpStatusExtention.PPCounters
         }
 
         /// <summary>
-        /// 計算に必要なカーブがすべて揃っているか。
+        /// 計算に必要なカーブが1種類でも揃っているか。
+        /// 欠けている種別は各 Calculator 側で個別にスキップする。
         /// </summary>
         public static bool IsValidCurves(Leaderboards curves)
         {
-            return curves?.ScoreSaber?.standardCurve?.Count > 1
-                && curves.ScoreSaber.modifierCurve?.Count > 1
-                && curves.ScoreSaber.modifiers != null
-                && curves.BeatLeader?.accCurve?.Count > 1
-                && curves.AccSaber?.curve?.Count > 1;
+            return curves != null
+                && (HasValidScoreSaber(curves.ScoreSaber)
+                    || HasValidBeatLeader(curves.BeatLeader)
+                    || HasValidAccSaber(curves.AccSaber));
+        }
+
+        private static bool HasValidScoreSaber(ScoreSaber scoreSaber)
+        {
+            return scoreSaber?.standardCurve?.Count > 1
+                && scoreSaber.modifierCurve?.Count > 1
+                && scoreSaber.modifiers != null;
+        }
+
+        private static bool HasValidBeatLeader(BeatLeader beatLeader)
+        {
+            return beatLeader?.accCurve?.Count > 1;
+        }
+
+        private static bool HasValidAccSaber(AccSaber accSaber)
+        {
+            return accSaber?.curve?.Count > 1;
         }
         #endregion
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
         #region // プライベートメソッド
         private async Task GetRawSSPP(CancellationToken token)
         {
-            var uri = URI_PREFIX + PP_FILE_NAME;
-            var result = await this.MakeWebRequest<Dictionary<string, RawPPData>>(uri, token);
-            if (result == null || result.Count == 0) {
-                Plugin.Log.Warn($"Failed to get ScoreSaber PP data. ({uri})");
-                return;
+            try {
+                var uri = URI_PREFIX + PP_FILE_NAME;
+                var result = await this.MakeWebRequest<Dictionary<string, RawPPData>>(uri, token);
+                if (result == null || result.Count == 0) {
+                    Plugin.Log.Warn($"Failed to get ScoreSaber PP data. ({uri})");
+                    return;
+                }
+                this.RowPPs = new ReadOnlyDictionary<string, RawPPData>(result);
             }
-            this.RowPPs = new ReadOnlyDictionary<string, RawPPData>(result);
+            catch (OperationCanceledException) when (token.IsCancellationRequested) {
+                throw;
+            }
+            catch (Exception e) {
+                // 1本の失敗で他のダウンロード結果を捨てない。
+                Plugin.Log.Warn($"Failed to get ScoreSaber PP data: {e.Message}");
+            }
         }
 
         private async Task GetAccSaberRankedMaps(CancellationToken token)
         {
-            var uri = ACCSABER_URL + ACCSABER_RANKED_MAPS;
-            var result = await this.MakeWebRequest<List<AccSaberRankedMap>>(uri, token);
-            if (result == null) {
-                Plugin.Log.Warn($"Failed to get AccSaber ranked maps. ({uri})");
-                return;
+            try {
+                var uri = ACCSABER_URL + ACCSABER_RANKED_MAPS;
+                var result = await this.MakeWebRequest<List<AccSaberRankedMap>>(uri, token);
+                if (result == null) {
+                    Plugin.Log.Warn($"Failed to get AccSaber ranked maps. ({uri})");
+                    return;
+                }
+                this.AccSaberData = result;
             }
-            this.AccSaberData = result;
+            catch (OperationCanceledException) when (token.IsCancellationRequested) {
+                throw;
+            }
+            catch (Exception e) {
+                Plugin.Log.Warn($"Failed to get AccSaber ranked maps: {e.Message}");
+            }
         }
 
         private async Task GetCurves(CancellationToken token)
         {
-            var uri = URI_PREFIX + CURVE_FILE_NAME;
-            var result = await this.MakeWebRequest<Leaderboards>(uri, token);
-            if (!IsValidCurves(result)) {
-                Plugin.Log.Warn($"Failed to get PP curve data. ({uri})");
-                return;
+            try {
+                var uri = URI_PREFIX + CURVE_FILE_NAME;
+                var result = await this.MakeWebRequest<Leaderboards>(uri, token);
+                if (!IsValidCurves(result)) {
+                    Plugin.Log.Warn($"Failed to get PP curve data. ({uri})");
+                    return;
+                }
+                this.Curves = result;
             }
-            this.Curves = result;
+            catch (OperationCanceledException) when (token.IsCancellationRequested) {
+                throw;
+            }
+            catch (Exception e) {
+                Plugin.Log.Warn($"Failed to get PP curve data: {e.Message}");
+            }
         }
 
         private async Task<T> MakeWebRequest<T>(string uri, CancellationToken token)

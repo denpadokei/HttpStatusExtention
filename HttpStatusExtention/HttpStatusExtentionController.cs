@@ -74,7 +74,7 @@ namespace HttpStatusExtention
                 this._statusManager.StatusJSON["performance"] = new JSONObject();
             }
             var jsonObject = this._statusManager.StatusJSON["performance"].AsObject;
-            jsonObject["current_acc_saber_ap"].AsFloat = this._accSaberCalculator.CalculateAP(this._scoreSaberRowPP, accracy);
+            jsonObject["current_acc_saber_ap"].AsFloat = this._accSaberCalculator.CalculateAP(this._songID, accracy);
             this._statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
         }
 
@@ -117,27 +117,34 @@ namespace HttpStatusExtention
                 this._statusManager.StatusJSON["beatmap"] = new JSONObject();
             }
             var beatmapJson = this._statusManager.StatusJSON["beatmap"].AsObject;
-            if (this._currentStarSong == null || this._currentStarSongDiff == null) {
-                return;
-            }
 
+            // SongDetails に載っていない譜面でも PP / rank 判定は行う。
             if (this._ssData.DataInit) {
                 this._scoreSaberRowPP = this._ssData.GetPP(this._songID);
             }
+            this._beatLeaderData.RefreshIfChanged();
             this._isBeatLeaderRank = this._beatLeaderData.IsRanked(this._songID);
             if (this._accSaberData.DataInit) {
                 this._isAccSaberRank = this._accSaberData.IsRanked(this._songID);
             }
 
-            if (this._scoreSaberRowPP > 0 && this._scoreSaberCalculator.IsReady) {
-                beatmapJson["pp"] = new JSONNumber(this._scoreSaberCalculator.CalculatePP(this._scoreSaberRowPP, 0.95f));
+            if (this._currentStarSong == null || this._currentStarSongDiff == null) {
+                return;
             }
-            if (this._isBeatLeaderRank && this._beatLeaderCalculator.IsReady) {
-                beatmapJson["bl_pp"] = new JSONNumber(this._beatLeaderCalculator.CalculatePP(this._songID, 0.95f));
-            }
-            if (this._isAccSaberRank && this._accSaberCalculator.IsReady) {
-                beatmapJson["acc_saber_ap"] = new JSONNumber(this._accSaberCalculator.CalculateAP(this._songID, 0.95f));
-            }
+
+            // 前の曲の値を残さないよう、データが無い場合も必ず上書きする。
+            beatmapJson["pp"] = new JSONNumber(
+                this._scoreSaberRowPP > 0 && this._scoreSaberCalculator.IsReady
+                    ? this._scoreSaberCalculator.CalculatePP(this._scoreSaberRowPP, 0.95f)
+                    : 0f);
+            beatmapJson["bl_pp"] = new JSONNumber(
+                this._isBeatLeaderRank && this._beatLeaderCalculator.IsReady
+                    ? this._beatLeaderCalculator.CalculatePP(this._songID, 0.95f)
+                    : 0f);
+            beatmapJson["acc_saber_ap"] = new JSONNumber(
+                this._isAccSaberRank && this._accSaberCalculator.IsReady
+                    ? this._accSaberCalculator.CalculateAP(this._songID, 0.95f)
+                    : 0f);
             beatmapJson["star"] = new JSONNumber(this._currentStarSongDiff.Star);
             beatmapJson["downloadCount"] = new JSONNumber(this._currentStarSong.DownloadCount);
             beatmapJson["upVotes"] = new JSONNumber(this._currentStarSong.Upvotes);

@@ -3,12 +3,12 @@
 <Project>
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-    <DisableCopyToPlugins>true</DisableCopyToPlugins>
+    <DisableCopyToGame>true</DisableCopyToGame>
     <DisableZipRelease>true</DisableZipRelease>
   </PropertyGroup>
   <PropertyGroup Condition="'$(NCrunch)' == '1'">
     <ContinuousIntegrationBuild>false</ContinuousIntegrationBuild>
-    <DisableCopyToPlugins>true</DisableCopyToPlugins>
+    <DisableCopyToGame>true</DisableCopyToGame>
     <DisableZipRelease>true</DisableZipRelease>
   </PropertyGroup>
 </Project>

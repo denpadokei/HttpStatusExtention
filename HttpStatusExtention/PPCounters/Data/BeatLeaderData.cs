@@ -24,35 +24,12 @@ namespace HttpStatusExtention.PPCounters
 
         private readonly TaskCompletionSource<bool> _ready = new TaskCompletionSource<bool>();
         private Dictionary<SongID, BeatLeaderLeaderboardCacheEntry> _cache = s_cache;
+        private int _refreshing;
 
         public async Task InitializeAsync(CancellationToken token)
         {
             try {
-                var fileInfo = new FileInfo(BL_CACHE_FILE);
-                if (!fileInfo.Exists) {
-                    this._cache = new Dictionary<SongID, BeatLeaderLeaderboardCacheEntry>();
-                    return;
-                }
-
-                if (s_cacheLoaded && s_cacheLastWriteTimeUtc == fileInfo.LastWriteTimeUtc && s_cacheLength == fileInfo.Length) {
-                    this._cache = s_cache;
-                    this.DataInit = true;
-                    return;
-                }
-
-                // 数 MB の JSON 解析をメインスレッドで行わない。
-                var cache = await Task.Run(() => LoadCacheFile(fileInfo)).ConfigureAwait(true);
-                if (cache == null) {
-                    return;
-                }
-
-                s_cache = cache;
-                s_cacheLastWriteTimeUtc = fileInfo.LastWriteTimeUtc;
-                s_cacheLength = fileInfo.Length;
-                s_cacheLoaded = true;
-
-                this._cache = cache;
-                this.DataInit = true;
+                await this.LoadIfChangedAsync().ConfigureAwait(true);
             }
             catch (Exception e) {
                 Plugin.Log.Warn($"Failed to load BeatLeader cache: {e.Message}");
@@ -65,6 +42,21 @@ namespace HttpStatusExtention.PPCounters
         public Task<bool> WaitForReadyAsync(CancellationToken token)
         {
             return TaskUtils.WaitAsync(this._ready.Task, token);
+        }
+
+        /// <summary>
+        /// BeatLeader のキャッシュファイルが更新されていればバックグラウンドで再読み込みする。
+        /// 現在の曲は古いデータのまま、次の曲から新しいデータを使う。
+        /// </summary>
+        public void RefreshIfChanged()
+        {
+            if (!this._ready.Task.IsCompleted) {
+                return;
+            }
+            if (Interlocked.CompareExchange(ref this._refreshing, 1, 0) != 0) {
+                return;
+            }
+            _ = this.RefreshAsync();
         }
 
         public bool IsRanked(SongID songID)
@@ -97,6 +89,53 @@ namespace HttpStatusExtention.PPCounters
             }
 
             return this._cache[songID].DifficultyInfo.modifierValues;
+        }
+
+        private async Task RefreshAsync()
+        {
+            try {
+                await this.LoadIfChangedAsync().ConfigureAwait(true);
+            }
+            catch (Exception e) {
+                Plugin.Log.Warn($"Failed to refresh BeatLeader cache: {e.Message}");
+            }
+            finally {
+                _ = Interlocked.Exchange(ref this._refreshing, 0);
+            }
+        }
+
+        private async Task LoadIfChangedAsync()
+        {
+            var fileInfo = new FileInfo(BL_CACHE_FILE);
+            if (!fileInfo.Exists) {
+                this._cache = new Dictionary<SongID, BeatLeaderLeaderboardCacheEntry>();
+                return;
+            }
+
+            if (s_cacheLoaded && s_cacheLastWriteTimeUtc == fileInfo.LastWriteTimeUtc && s_cacheLength == fileInfo.Length) {
+                this._cache = s_cache;
+                this.DataInit = true;
+                return;
+            }
+
+            // 数 MB の JSON 解析をメインスレッドで行わない。
+            var cache = await Task.Run(() => LoadCacheFile(fileInfo)).ConfigureAwait(true);
+            if (cache == null) {
+                // 壊れたファイルを毎曲解析し続けないよう、次にファイルが変わるまでスキップする。
+                s_cacheLastWriteTimeUtc = fileInfo.LastWriteTimeUtc;
+                s_cacheLength = fileInfo.Length;
+                s_cacheLoaded = true;
+                this.DataInit = true;
+                return;
+            }
+
+            s_cache = cache;
+            s_cacheLastWriteTimeUtc = fileInfo.LastWriteTimeUtc;
+            s_cacheLength = fileInfo.Length;
+            s_cacheLoaded = true;
+
+            this._cache = cache;
+            this.DataInit = true;
         }
 
         private static Dictionary<SongID, BeatLeaderLeaderboardCacheEntry> LoadCacheFile(FileInfo fileInfo)

@@ -8,10 +8,12 @@ namespace HttpStatusExtention.Models
         /// <summary>
         /// Waits for <paramref name="task"/> and returns whether it completed before the
         /// cancellation token was cancelled. Awaiting this task never blocks the caller.
+        /// Faults from the task are observed by awaiting it before returning.
         /// </summary>
         public static async Task<bool> WaitAsync(Task task, CancellationToken token)
         {
             if (task.IsCompleted) {
+                await task;
                 return true;
             }
 
@@ -22,7 +24,11 @@ namespace HttpStatusExtention.Models
 
             var cancelled = new TaskCompletionSource<bool>();
             using (token.Register(() => _ = cancelled.TrySetResult(true))) {
-                return await Task.WhenAny(task, cancelled.Task) == task;
+                if (await Task.WhenAny(task, cancelled.Task) == task) {
+                    await task;
+                    return true;
+                }
+                return false;
             }
         }
     }

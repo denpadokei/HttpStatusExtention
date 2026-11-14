@@ -1,5 +1,4 @@
-﻿using HttpStatusExtention.Models;
-using SiraUtil.Zenject;
+﻿using SiraUtil.Zenject;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -15,8 +14,6 @@ namespace HttpStatusExtention.PPCounters
         private readonly PPDownloader _ppDownloader;
         private readonly Dictionary<SongID, float> _rankedMaps = new Dictionary<SongID, float>();
 
-        private readonly TaskCompletionSource<bool> _ready = new TaskCompletionSource<bool>();
-
         public async Task InitializeAsync(CancellationToken token)
         {
             try {
@@ -26,13 +23,7 @@ namespace HttpStatusExtention.PPCounters
             }
             finally {
                 this.DataInit = true;
-                _ = this._ready.TrySetResult(true);
             }
-        }
-
-        public Task<bool> WaitForReadyAsync(CancellationToken token)
-        {
-            return TaskUtils.WaitAsync(this._ready.Task, token);
         }
 
         public float GetComplexity(SongID songID)

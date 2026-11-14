@@ -8,7 +8,6 @@ namespace HttpStatusExtention.Installers
         public override void InstallBindings()
         {
             // PP データはアプリ全体で 1 度だけ読み込む (HttpStatusExtentionAppInstaller)。
-            _ = this.Container.BindInterfacesAndSelfTo<BeatLeaderData>().AsCached();
             _ = this.Container.BindInterfacesAndSelfTo<AccSaberCalculator>().AsCached();
             _ = this.Container.BindInterfacesAndSelfTo<ScoreSaberCalculator>().AsCached();
             _ = this.Container.BindInterfacesAndSelfTo<BeatLeaderCalculator>().AsCached();

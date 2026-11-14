@@ -58,8 +58,9 @@ namespace HttpStatusExtention
         }
 
         private static readonly int RETRY_COUNT = 2;
-        private static readonly TimeSpan REQUEST_TIMEOUT = TimeSpan.FromSeconds(30);
+        private static readonly TimeSpan REQUEST_TIMEOUT = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan RETRY_DELAY = TimeSpan.FromSeconds(1);
+        private static readonly TimeSpan MAX_RETRY_DELAY = TimeSpan.FromSeconds(30);
 
         private static void Connect()
         {
@@ -135,11 +136,12 @@ namespace HttpStatusExtention
             HttpResponseMessage resp = null;
             byte[] content = null;
             Exception lastException = null;
+            var retryDelay = RETRY_DELAY;
             try {
                 for (var attempt = 0; attempt <= RETRY_COUNT; attempt++) {
                     token.ThrowIfCancellationRequested();
                     if (attempt != 0) {
-                        await Task.Delay(RETRY_DELAY, token).ConfigureAwait(false);
+                        await Task.Delay(retryDelay, token).ConfigureAwait(false);
                     }
 
                     resp?.Dispose();
@@ -163,6 +165,8 @@ namespace HttpStatusExtention
                                 }
                                 break;
                             }
+
+                            retryDelay = (int)resp.StatusCode == 429 ? GetRetryAfter(resp, RETRY_DELAY) : RETRY_DELAY;
                         }
                     }
                     catch (OperationCanceledException) when (token.IsCancellationRequested) {
@@ -170,13 +174,15 @@ namespace HttpStatusExtention
                     }
                     catch (Exception e) {
                         lastException = e;
+                        resp?.Dispose();
+                        resp = null;
                         Plugin.Log.Warn($"Request failed (attempt {attempt + 1}/{RETRY_COUNT + 1}): {url} ({e.GetType().Name}: {e.Message})");
                     }
                 }
 
                 token.ThrowIfCancellationRequested();
 
-                if (resp == null) {
+                if (resp == null || (resp.IsSuccessStatusCode && content == null)) {
                     Plugin.Log.Warn($"Request failed: {url}{(lastException == null ? string.Empty : $" ({lastException.Message})")}");
                     return null;
                 }
@@ -189,6 +195,23 @@ namespace HttpStatusExtention
             finally {
                 resp?.Dispose();
             }
+        }
+
+        private static TimeSpan GetRetryAfter(HttpResponseMessage response, TimeSpan fallback)
+        {
+            var retryAfter = response.Headers.RetryAfter;
+            var delay = fallback;
+            if (retryAfter?.Delta != null) {
+                delay = retryAfter.Delta.Value;
+            }
+            else if (retryAfter?.Date != null) {
+                delay = retryAfter.Date.Value - DateTimeOffset.UtcNow;
+            }
+
+            if (delay < TimeSpan.Zero) {
+                return TimeSpan.Zero;
+            }
+            return delay > MAX_RETRY_DELAY ? MAX_RETRY_DELAY : delay;
         }
 
         private static bool ShouldRetry(HttpStatusCode statusCode)
