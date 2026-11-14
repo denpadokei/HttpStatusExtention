@@ -3,7 +3,6 @@ using System;
 using System.IO;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
 using System.Threading;
@@ -15,8 +14,6 @@ namespace HttpStatusExtention
     {
         public readonly HttpStatusCode StatusCode;
         public readonly string ReasonPhrase;
-        public readonly HttpResponseHeaders Headers;
-        public readonly HttpRequestMessage RequestMessage;
         public readonly bool IsSuccessStatusCode;
 
         private readonly byte[] _content;
@@ -25,11 +22,8 @@ namespace HttpStatusExtention
         {
             this.StatusCode = resp.StatusCode;
             this.ReasonPhrase = resp.ReasonPhrase;
-            this.Headers = resp.Headers;
-            this.RequestMessage = resp.RequestMessage;
             this.IsSuccessStatusCode = resp.IsSuccessStatusCode;
-
-            this._content = body;
+            this._content = body ?? Array.Empty<byte>();
         }
 
         public byte[] ContentToBytes()
@@ -63,7 +57,9 @@ namespace HttpStatusExtention
             }
         }
 
-        private static readonly int RETRY_COUNT = 5;
+        private static readonly int RETRY_COUNT = 2;
+        private static readonly TimeSpan REQUEST_TIMEOUT = TimeSpan.FromSeconds(30);
+        private static readonly TimeSpan RETRY_DELAY = TimeSpan.FromSeconds(1);
 
         private static void Connect()
         {
@@ -86,6 +82,9 @@ namespace HttpStatusExtention
             try {
                 return await SendAsync(HttpMethod.Get, url, token);
             }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) {
+                throw;
+            }
             catch (Exception e) {
                 Plugin.Log.Error(e);
                 return null;
@@ -97,6 +96,9 @@ namespace HttpStatusExtention
             try {
                 var response = await SendAsync(HttpMethod.Get, url, token);
                 return response?.IsSuccessStatusCode == true ? response.ContentToBytes() : null;
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) {
+                throw;
             }
             catch (Exception e) {
                 Plugin.Log.Error(e);
@@ -119,6 +121,9 @@ namespace HttpStatusExtention
 
                 return response?.IsSuccessStatusCode == true ? response.ContentToBytes() : null;
             }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) {
+                throw;
+            }
             catch (Exception e) {
                 Plugin.Log.Error(e);
                 return null;
@@ -127,64 +132,102 @@ namespace HttpStatusExtention
 
         internal static async Task<WebResponse> SendAsync(HttpMethod methodType, string url, CancellationToken token, IProgress<double> progress = null)
         {
-            // send request
+            HttpResponseMessage resp = null;
+            byte[] content = null;
+            Exception lastException = null;
             try {
-                HttpResponseMessage resp = null;
-                var retryCount = 0;
-                do {
+                for (var attempt = 0; attempt <= RETRY_COUNT; attempt++) {
+                    token.ThrowIfCancellationRequested();
+                    if (attempt != 0) {
+                        await Task.Delay(RETRY_DELAY, token).ConfigureAwait(false);
+                    }
+
+                    resp?.Dispose();
+                    resp = null;
+
                     try {
-                        // create new request messsage
-                        var req = new HttpRequestMessage(methodType, url);
-                        if (retryCount != 0) {
-                            await Task.Delay(1000);
+                        // HttpClient.Timeout はヘッダー受信までしかカバーしないため、
+                        // ボディの読み込みも含めたタイムアウトを別に設定する。
+                        using (var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(token)) {
+                            timeoutCts.CancelAfter(REQUEST_TIMEOUT);
+
+                            using (var req = new HttpRequestMessage(methodType, url)) {
+                                resp = await Client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, timeoutCts.Token).ConfigureAwait(false);
+                            }
+
+                            Plugin.Log.Debug($"resp code : {resp.StatusCode}");
+
+                            if (resp.IsSuccessStatusCode || resp.StatusCode == HttpStatusCode.NotFound || !ShouldRetry(resp.StatusCode)) {
+                                if (resp.IsSuccessStatusCode) {
+                                    content = await ReadContentAsync(resp, progress, timeoutCts.Token).ConfigureAwait(false);
+                                }
+                                break;
+                            }
                         }
-                        retryCount++;
-                        resp = await Client.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
-                        Plugin.Log.Debug($"resp code : {resp.StatusCode}");
+                    }
+                    catch (OperationCanceledException) when (token.IsCancellationRequested) {
+                        throw;
                     }
                     catch (Exception e) {
-                        Plugin.Log.Error($"resp code : {resp?.StatusCode}");
-                        Plugin.Log.Error(e);
+                        lastException = e;
+                        Plugin.Log.Warn($"Request failed (attempt {attempt + 1}/{RETRY_COUNT + 1}): {url} ({e.GetType().Name}: {e.Message})");
                     }
-                } while (resp?.StatusCode != HttpStatusCode.NotFound && resp?.IsSuccessStatusCode != true && retryCount <= RETRY_COUNT);
-
-                if (token.IsCancellationRequested) {
-                    throw new TaskCanceledException();
                 }
 
-                using (var memoryStream = new MemoryStream())
-                using (var stream = await resp.Content.ReadAsStreamAsync().ConfigureAwait(false)) {
-                    var buffer = new byte[8192];
-                    var bytesRead = 0;
+                token.ThrowIfCancellationRequested();
 
-                    var contentLength = resp?.Content.Headers.ContentLength;
-                    var totalRead = 0;
-
-                    // send report
-                    progress?.Report(0);
-
-                    while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false)) > 0) {
-                        if (token.IsCancellationRequested) {
-                            throw new TaskCanceledException();
-                        }
-
-                        if (contentLength != null) {
-                            progress?.Report(totalRead / (double)contentLength);
-                        }
-
-                        await memoryStream.WriteAsync(buffer, 0, bytesRead).ConfigureAwait(false);
-                        totalRead += bytesRead;
-                    }
-
-                    progress?.Report(1);
-                    var bytes = memoryStream.ToArray();
-
-                    return new WebResponse(resp, bytes);
+                if (resp == null) {
+                    Plugin.Log.Warn($"Request failed: {url}{(lastException == null ? string.Empty : $" ({lastException.Message})")}");
+                    return null;
                 }
+
+                var result = new WebResponse(resp, content);
+                resp.Dispose();
+                resp = null;
+                return result;
             }
-            catch (Exception e) {
-                Plugin.Log.Error(e);
-                throw;
+            finally {
+                resp?.Dispose();
+            }
+        }
+
+        private static bool ShouldRetry(HttpStatusCode statusCode)
+        {
+            if (statusCode == HttpStatusCode.RequestTimeout) {
+                return true;
+            }
+            if ((int)statusCode == 429) {
+                return true;
+            }
+            return (int)statusCode >= 500;
+        }
+
+        private static async Task<byte[]> ReadContentAsync(HttpResponseMessage response, IProgress<double> progress, CancellationToken token)
+        {
+            using (var memoryStream = new MemoryStream())
+            using (var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false)) {
+                var buffer = new byte[8192];
+                var bytesRead = 0;
+
+                var contentLength = response.Content.Headers.ContentLength;
+                long totalRead = 0;
+
+                // send report
+                progress?.Report(0);
+
+                while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false)) > 0) {
+                    token.ThrowIfCancellationRequested();
+
+                    if (contentLength != null) {
+                        progress?.Report(totalRead / (double)contentLength);
+                    }
+
+                    await memoryStream.WriteAsync(buffer, 0, bytesRead, token).ConfigureAwait(false);
+                    totalRead += bytesRead;
+                }
+
+                progress?.Report(1);
+                return memoryStream.ToArray();
             }
         }
     }

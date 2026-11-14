@@ -22,6 +22,7 @@ namespace HttpStatusExtention.PPCounters
         private List<Point> _curve;
         private float[] _slopes;
         private float _multiplier;
+        private bool _ready;
 
         [Inject]
         public ScoreSaberCalculator(GameplayCoreSceneSetupData gameplayCoreSceneSetupData, RelativeScoreAndImmediateRankCounter relativeScoreAndImmediateRankCounter, GameplayModifiers gameplayModifiers, PPData pPData)
@@ -35,8 +36,11 @@ namespace HttpStatusExtention.PPCounters
 
         public async Task InitializeAsync(CancellationToken token)
         {
-            if (this.ppData?.CurveInit != true) {
-                await Task.Delay(1);
+            if (!await this.ppData.WaitForReadyAsync(token)) {
+                return;
+            }
+            if (!this.ppData.CurveInit || this.ppData.Curves?.ScoreSaber == null) {
+                return;
             }
             var id = SongDataUtils.GetHash(this._level.levelID);
             this.SetCurve(this.ppData.Curves.ScoreSaber, new SongID(id, this._key.difficulty), this.relativeScoreAndImmediateRank._gameplayModifiersModel, this.gameplayModifiers);
@@ -44,21 +48,28 @@ namespace HttpStatusExtention.PPCounters
 
         public void SetCurve(ScoreSaber scoreSaber, SongID songID, GameplayModifiersModelSO gameplayModifiersModelSO, GameplayModifiers gameplayModifiers)
         {
+            if (scoreSaber?.standardCurve == null || scoreSaber.modifierCurve == null || scoreSaber.modifiers == null) {
+                return;
+            }
+
+            this.songsAllowingPositiveModifiers = scoreSaber.songsAllowingPositiveModifiers?.ToHashSet() ?? new HashSet<string>();
+
             var allowedPositiveModifiers = this.AllowedPositiveModifiers(songID);
             var updatedModifiers = allowedPositiveModifiers ? GameplayModifierUtils.RemoveSuperFast(gameplayModifiers) : GameplayModifierUtils.RemovePositiveModifiers(gameplayModifiers);
 
             this._multiplier = CalculateMultiplier(gameplayModifiersModelSO, updatedModifiers, scoreSaber.modifiers);
 
-            this.songsAllowingPositiveModifiers = scoreSaber.songsAllowingPositiveModifiers.ToHashSet();
-
             this._curve = allowedPositiveModifiers ? scoreSaber.modifierCurve : scoreSaber.standardCurve;
             this._slopes = CurveUtils.GetSlopes(this._curve);
+            this._ready = this._curve.Count > 1 && this._slopes.Length > 0;
         }
 
         public bool IsRanked(SongID songID)
         {
             return this.ssData.IsRanked(songID);
         }
+
+        public bool IsReady => this._ready;
 
         public bool AllowedPositiveModifiers(SongID songID)
         {
@@ -78,6 +89,10 @@ namespace HttpStatusExtention.PPCounters
 
         public float CalculatePP(float rawPP, float accuracy, bool failed = false)
         {
+            if (!this._ready) {
+                return 0f;
+            }
+
             var multiplier = this._multiplier;
             if (failed) {
                 multiplier -= 0.5f;

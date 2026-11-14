@@ -41,6 +41,9 @@ namespace HttpStatusExtention
 
         private void SRMConigPatch_OnQueueStatusChanged(bool obj)
         {
+            if (this._disposedValue) {
+                return;
+            }
             this._statusManager.OtherJSON["srm_queue_status"] = new JSONBool(obj);
             this._statusManager.EmitStatusUpdate(ChangedProperty.Other, BeatSaberEvent.Other);
         }
