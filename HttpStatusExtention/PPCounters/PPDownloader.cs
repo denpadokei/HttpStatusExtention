@@ -95,6 +95,17 @@ namespace HttpStatusExtention.PPCounters
                     || HasValidAccSaber(curves.AccSaber));
         }
 
+        /// <summary>
+        /// キャッシュファイルを部分データで上書きしないための判定。
+        /// </summary>
+        public static bool IsCompleteCurves(Leaderboards curves)
+        {
+            return curves != null
+                && HasValidScoreSaber(curves.ScoreSaber)
+                && HasValidBeatLeader(curves.BeatLeader)
+                && HasValidAccSaber(curves.AccSaber);
+        }
+
         private static bool HasValidScoreSaber(ScoreSaber scoreSaber)
         {
             return scoreSaber?.standardCurve?.Count > 1

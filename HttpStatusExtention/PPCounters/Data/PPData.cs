@@ -36,7 +36,9 @@ namespace HttpStatusExtention.PPCounters
                         this.Curves = this._ppDownloader.Curves;
                         this.CurveInit = true;
                     }
-                    this.WriteCurveFile();
+                    if (PPDownloader.IsCompleteCurves(this.Curves)) {
+                        this.WriteCurveFile();
+                    }
                 }
             }
             finally {

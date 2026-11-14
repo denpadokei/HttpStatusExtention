@@ -128,10 +128,6 @@ namespace HttpStatusExtention
                 this._isAccSaberRank = this._accSaberData.IsRanked(this._songID);
             }
 
-            if (this._currentStarSong == null || this._currentStarSongDiff == null) {
-                return;
-            }
-
             // 前の曲の値を残さないよう、データが無い場合も必ず上書きする。
             beatmapJson["pp"] = new JSONNumber(
                 this._scoreSaberRowPP > 0 && this._scoreSaberCalculator.IsReady
@@ -145,6 +141,11 @@ namespace HttpStatusExtention
                 this._isAccSaberRank && this._accSaberCalculator.IsReady
                     ? this._accSaberCalculator.CalculateAP(this._songID, 0.95f)
                     : 0f);
+
+            if (this._currentStarSong == null || this._currentStarSongDiff == null) {
+                return;
+            }
+
             beatmapJson["star"] = new JSONNumber(this._currentStarSongDiff.Star);
             beatmapJson["downloadCount"] = new JSONNumber(this._currentStarSong.DownloadCount);
             beatmapJson["upVotes"] = new JSONNumber(this._currentStarSong.Upvotes);
