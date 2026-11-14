@@ -22,7 +22,8 @@ namespace HttpStatusExtention
         #region // パブリックメソッド
         public Task InitializeAsync(CancellationToken token)
         {
-            return this.Setup();
+            this.Setup();
+            return Task.CompletedTask;
         }
         #endregion
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
@@ -40,7 +41,7 @@ namespace HttpStatusExtention
 
         private void SendScoreSaberPP(float relativeScore)
         {
-            if (this._scoreSaberRowPP == 0) {
+            if (this._scoreSaberRowPP == 0 || !this._scoreSaberCalculator.IsReady) {
                 return;
             }
             if (this._statusManager.StatusJSON["performance"] == null) {
@@ -53,7 +54,7 @@ namespace HttpStatusExtention
 
         private void SendBeatLeaderPP(float accracy)
         {
-            if (!this._isBeatLeaderRank) {
+            if (!this._isBeatLeaderRank || !this._beatLeaderCalculator.IsReady) {
                 return;
             }
             if (this._statusManager.StatusJSON["performance"] == null) {
@@ -66,18 +67,18 @@ namespace HttpStatusExtention
 
         private void SendAccSaberAP(float accracy)
         {
-            if (!this._isAccSaberRank) {
+            if (!this._isAccSaberRank || !this._accSaberCalculator.IsReady) {
                 return;
             }
             if (this._statusManager.StatusJSON["performance"] == null) {
                 this._statusManager.StatusJSON["performance"] = new JSONObject();
             }
             var jsonObject = this._statusManager.StatusJSON["performance"].AsObject;
-            jsonObject["current_acc_saber_ap"].AsFloat = this._accSaberCalculator.CalculateAP(this._scoreSaberRowPP, accracy);
+            jsonObject["current_acc_saber_ap"].AsFloat = this._accSaberCalculator.CalculateAP(this._songID, accracy);
             this._statusManager.EmitStatusUpdate(ChangedProperty.Performance, BeatSaberEvent.ScoreChanged);
         }
 
-        private async Task Setup()
+        private void Setup()
         {
             Plugin.Log.Debug($"Setup start.");
             this._gamePause.didResumeEvent += this.OnGameResume;
@@ -89,22 +90,26 @@ namespace HttpStatusExtention
             this._currentBeatmapCharacteristics = Enum.GetValues(typeof(BeatDataCharacteristics)).OfType<BeatDataCharacteristics>().FirstOrDefault(x => x.GetDescription() == key);
             this._currentBeatmapDifficulty = beatmapKey.difficulty;
             //this._gameplayCoreSceneSetupData.difficultyBeatmap.difficulty;
-            this._levelID = beatmapLevel.levelID;
 
             var previewBeatmap = Loader.GetLevelById(beatmapLevel.levelID);
             this._currentCustomBeatmapLevel = previewBeatmap;
             if (this._currentCustomBeatmapLevel != null) {
-                await this.SetStarInfo(this._levelID);
+                try {
+                    this.SetStarInfo();
+                }
+                catch (Exception e) {
+                    // 拡張情報の取得に失敗しても SongStart は必ず送る。
+                    Plugin.Log.Error(e);
+                }
             }
             _ = CoroutineManager.Instance.StartCoroutine(this.SongStartWait());
         }
 
-        private async Task SetStarInfo(string levelID)
+        private void SetStarInfo()
         {
-            var multiplier = this._gameStatus.modifierMultiplier;
-            this._scoreSaberRowPP = this._ssData.GetPP(this._songID);
-            this._isBeatLeaderRank = this._beatLeaderData.IsRanked(this._songID);
-            this._isAccSaberRank = this._accSaberData.IsRanked(this._songID);
+            // PP データはアプリ起動時に 1 度だけ読み込まれる。
+            // 曲の開始をネットワーク待ちで遅らせないため、まだ準備できていなければ
+            // この曲では拡張情報を諦める (次の曲以降で反映される)。
             this.SetCustomLabel(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty, this._currentBeatmapCharacteristics);
             this._currentStarSong = this._songDataUtil.GetBeatStarSong(this._currentCustomBeatmapLevel);
             this._currentStarSongDiff = this._songDataUtil.GetBeatStarSongDiffculityStats(this._currentCustomBeatmapLevel, this._currentBeatmapDifficulty, this._currentBeatmapCharacteristics);
@@ -113,19 +118,39 @@ namespace HttpStatusExtention
             }
             var beatmapJson = this._statusManager.StatusJSON["beatmap"].AsObject;
 
-            if (this._currentStarSong != null && this._currentStarSongDiff != null) {
-                while (this._PPDownloader?.Init != true) {
-                    await Task.Delay(1);
-                }
-                beatmapJson["pp"] = new JSONNumber(this._scoreSaberCalculator.CalculatePP(this._scoreSaberRowPP, 0.95f));
-                beatmapJson["bl_pp"] = new JSONNumber(this._beatLeaderCalculator.CalculatePP(this._songID, 0.95f));
-                beatmapJson["acc_saber_ap"] = new JSONNumber(this._accSaberCalculator.CalculateAP(this._songID, 0.95f));
-                beatmapJson["star"] = new JSONNumber(this._currentStarSongDiff.Star);
-                beatmapJson["downloadCount"] = new JSONNumber(this._currentStarSong.DownloadCount);
-                beatmapJson["upVotes"] = new JSONNumber(this._currentStarSong.Upvotes);
-                beatmapJson["downVotes"] = new JSONNumber(this._currentStarSong.Downvotes);
-                beatmapJson["rating"] = new JSONNumber(this._currentStarSong.Rating);
+            // SongDetails に載っていない譜面でも PP / rank 判定は行う。
+            if (this._ssData.DataInit) {
+                this._scoreSaberRowPP = this._ssData.GetPP(this._songID);
             }
+            this._beatLeaderData.RefreshIfChanged();
+            this._isBeatLeaderRank = this._beatLeaderData.IsRanked(this._songID);
+            if (this._accSaberData.DataInit) {
+                this._isAccSaberRank = this._accSaberData.IsRanked(this._songID);
+            }
+
+            // 前の曲の値を残さないよう、データが無い場合も必ず上書きする。
+            beatmapJson["pp"] = new JSONNumber(
+                this._scoreSaberRowPP > 0 && this._scoreSaberCalculator.IsReady
+                    ? this._scoreSaberCalculator.CalculatePP(this._scoreSaberRowPP, 0.95f)
+                    : 0f);
+            beatmapJson["bl_pp"] = new JSONNumber(
+                this._isBeatLeaderRank && this._beatLeaderCalculator.IsReady
+                    ? this._beatLeaderCalculator.CalculatePP(this._songID, 0.95f)
+                    : 0f);
+            beatmapJson["acc_saber_ap"] = new JSONNumber(
+                this._isAccSaberRank && this._accSaberCalculator.IsReady
+                    ? this._accSaberCalculator.CalculateAP(this._songID, 0.95f)
+                    : 0f);
+
+            if (this._currentStarSong == null || this._currentStarSongDiff == null) {
+                return;
+            }
+
+            beatmapJson["star"] = new JSONNumber(this._currentStarSongDiff.Star);
+            beatmapJson["downloadCount"] = new JSONNumber(this._currentStarSong.DownloadCount);
+            beatmapJson["upVotes"] = new JSONNumber(this._currentStarSong.Upvotes);
+            beatmapJson["downVotes"] = new JSONNumber(this._currentStarSong.Downvotes);
+            beatmapJson["rating"] = new JSONNumber(this._currentStarSong.Rating);
         }
 
         private void RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent()
@@ -139,7 +164,7 @@ namespace HttpStatusExtention
                 return;
             }
             var songData = Collections.GetCustomLevelSongData(beatmap.levelID);
-            var diffData = songData._difficulties?.FirstOrDefault(x => x._beatmapCharacteristicName == beatDataCharacteristics.GetDescription() && x._difficulty == diff);
+            var diffData = songData?._difficulties?.FirstOrDefault(x => x._beatmapCharacteristicName == beatDataCharacteristics.GetDescription() && x._difficulty == diff);
             var currentDiffLabel = diffData?._difficultyLabel;
             if (string.IsNullOrEmpty(currentDiffLabel)) {
                 return;
@@ -183,7 +208,6 @@ namespace HttpStatusExtention
         //ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*ﾟ+｡｡+ﾟ*｡+ﾟ ﾟ+｡*
         #region // メンバ変数
         private IGamePause _gamePause;
-        private IGameStatus _gameStatus;
         private bool _disposedValue;
         private IStatusManager _statusManager;
         private RelativeScoreAndImmediateRankCounter _relativeScoreAndImmediateRankCounter;
@@ -198,7 +222,6 @@ namespace HttpStatusExtention
         private float _scoreSaberRowPP;
         private bool _isBeatLeaderRank;
         private bool _isAccSaberRank;
-        private string _levelID;
         private bool _failed = false;
         private ScoreSaberCalculator _scoreSaberCalculator;
         private SSData _ssData;
@@ -206,7 +229,6 @@ namespace HttpStatusExtention
         private AccSaberData _accSaberData;
         private BeatLeaderCalculator _beatLeaderCalculator;
         private AccSaberCalculator _accSaberCalculator;
-        private PPDownloader _PPDownloader;
         private SongID _songID;
         private IGameEnergyCounter _gameEnergyCounter;
         #endregion
@@ -215,13 +237,11 @@ namespace HttpStatusExtention
         [Inject]
         protected void Constractor(
             IStatusManager statusManager,
-            IGameStatus gameStatus,
             RelativeScoreAndImmediateRankCounter relativeScoreAndImmediateRankCounter,
             IAudioTimeSource audioTimeSource,
             GameplayCoreSceneSetupData gameplayCoreSceneSetupData,
             ISongDataUtil songDataUtil,
             IGamePause gamePause,
-            PPDownloader pPDownloader,
             ScoreSaberCalculator scoreSaberCalculator,
             BeatLeaderCalculator beatLeaderCalculator,
             AccSaberCalculator accSaberCalculator,
@@ -236,11 +256,9 @@ namespace HttpStatusExtention
             this._gameplayCoreSceneSetupData = gameplayCoreSceneSetupData;
             this._songDataUtil = songDataUtil;
             this._gamePause = gamePause;
-            this._gameStatus = gameStatus;
             this._scoreSaberCalculator = scoreSaberCalculator;
             this._beatLeaderCalculator = beatLeaderCalculator;
             this._accSaberCalculator = accSaberCalculator;
-            this._PPDownloader = pPDownloader;
             this._ssData = ssData;
             this._beatLeaderData = beatLeaderData;
             this._accSaberData = accSaberData;
@@ -260,6 +278,9 @@ namespace HttpStatusExtention
                     Plugin.Log.Debug($"Dispose call");
                     this._gamePause.didResumeEvent -= this.OnGameResume;
                     this._relativeScoreAndImmediateRankCounter.relativeScoreOrImmediateRankDidChangeEvent -= this.RelativeScoreAndImmediateRankCounter_relativeScoreOrImmediateRankDidChangeEvent;
+                    if (this._gameEnergyCounter != null) {
+                        this._gameEnergyCounter.gameEnergyDidReach0Event -= this.OnGameEnergyCounter_gameEnergyDidReach0Event;
+                    }
                 }
                 this._disposedValue = true;
             }

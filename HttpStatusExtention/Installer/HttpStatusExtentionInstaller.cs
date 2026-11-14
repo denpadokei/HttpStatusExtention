@@ -1,4 +1,5 @@
 ﻿using HttpStatusExtention.PPCounters;
+using Zenject;
 
 namespace HttpStatusExtention.Installers
 {
@@ -6,10 +7,7 @@ namespace HttpStatusExtention.Installers
     {
         public override void InstallBindings()
         {
-            _ = this.Container.BindInterfacesAndSelfTo<PPData>().AsCached();
-            _ = this.Container.BindInterfacesAndSelfTo<SSData>().AsCached();
-            _ = this.Container.BindInterfacesAndSelfTo<AccSaberData>().AsCached();
-            _ = this.Container.BindInterfacesAndSelfTo<BeatLeaderData>().AsCached();
+            // PP データはアプリ全体で 1 度だけ読み込む (HttpStatusExtentionAppInstaller)。
             _ = this.Container.BindInterfacesAndSelfTo<AccSaberCalculator>().AsCached();
             _ = this.Container.BindInterfacesAndSelfTo<ScoreSaberCalculator>().AsCached();
             _ = this.Container.BindInterfacesAndSelfTo<BeatLeaderCalculator>().AsCached();
