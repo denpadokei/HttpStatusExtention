@@ -1,0 +1,214 @@
+name: Build and Release
+
+# リリース手順
+#   1. manifest の version / gameVersion を上げて既定ブランチへマージ
+#   2. X.X.X (manifest の version) のタグを手動作成して push
+#      (例: git tag 11.0.1 && git push origin 11.0.1)
+#   3. タグ push でビルドが実行され、<ModName>-<version>-bs<GameVersion> という
+#      リリース名で成果物が添付される
+on:
+  # 手動実行と PR はビルドのみ (リリースしない)
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/build-and-release.yml
+      - 'HttpStatusExtention/**'
+  push:
+    # 既定ブランチへの push はビルドのみ
+    branches: [master]
+    # リリースは X.X.X (manifest の version) タグを手動 push したときだけ
+    tags:
+      - '[0-9]*'
+    paths:
+      - .github/workflows/build-and-release.yml
+      - 'HttpStatusExtention/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: windows-latest
+    outputs:
+      zip-name: ${{ steps.package.outputs.zip-name }}
+      version: ${{ steps.manifest.outputs.version }}
+      game-version: ${{ steps.manifest.outputs.game-version }}
+      tag: ${{ steps.manifest.outputs.tag }}
+      release-name: ${{ steps.manifest.outputs.release-name }}
+      commit: ${{ steps.manifest.outputs.commit }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Read manifest
+        id: manifest
+        shell: pwsh
+        run: |
+          $manifest = Get-Content 'HttpStatusExtention\manifest.json' -Raw | ConvertFrom-Json
+
+          # タグは X.X.X (manifest の version) で、リリース名は
+          # <ModName>-<version>-bs<GameVersion> に揃える。
+          $releaseName = '{0}-{1}-bs{2}' -f $manifest.id, $manifest.version, $manifest.gameVersion
+
+          if ($env:GITHUB_REF -like 'refs/tags/*') {
+            $tag = $env:GITHUB_REF_NAME
+            if ($tag -ne $manifest.version) {
+              throw "Tag '$tag' does not match the manifest version '$($manifest.version)'. version を上げたらタグも作り直してください。"
+            }
+          } else {
+            $tag = $manifest.version
+          }
+
+          "version=$($manifest.version)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "game-version=$($manifest.gameVersion)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "release-name=$releaseName" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "commit=$env:GITHUB_SHA" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      # BeatMods からゲーム参照アセンブリと依存 MOD を取得する。
+      # このプロジェクトは依存を csproj の DependsOn ではなく manifest.json に持つため、
+      # アクションに読ませる game-version と additional-dependencies を明示する。
+      - name: Set up Beat Saber
+        uses: nicoco007/setup-beat-saber@v1
+        with:
+          project-path: ${{ github.workspace }}\HttpStatusExtention\HttpStatusExtention.csproj
+          game-version: ${{ steps.manifest.outputs.game-version }}
+          additional-dependencies: |
+            {
+              "BSIPA": "4.3.6",
+              "BSUtils": "1.14.2",
+              "SiraUtil": "3.2.1",
+              "SongCore": "3.15.3",
+              "SongDetailsCache": "1.4.0"
+            }
+
+      # HttpSiraStatus 14.x は BeatMods で公開されていないため、
+      # GitHub Releases から取得して Plugins に展開する。
+      - name: Set up HttpSiraStatus
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $destination = Join-Path $env:RUNNER_TEMP 'HttpSiraStatus'
+          New-Item -ItemType Directory -Force -Path $destination | Out-Null
+          gh release download 14.1.0 --repo denpadokei/HttpSiraStatus --pattern '*.zip' --dir $destination --clobber
+          $zip = Get-ChildItem $destination -Filter *.zip | Select-Object -First 1
+          if (-not $zip) {
+            throw 'HttpSiraStatus release zip was not found.'
+          }
+          Expand-Archive -Path $zip.FullName -DestinationPath $env:BeatSaberDir -Force
+
+      - name: Build Release
+        shell: pwsh
+        run: |
+          # csproj は ..\Refs があるとそれを BeatSaberDir に使うため、CI では明示的に渡す。
+          dotnet build "${{ github.workspace }}\HttpStatusExtention\HttpStatusExtention.csproj" -c Release `
+            -p:BeatSaberDir="$env:BeatSaberDir" `
+            -p:GameDirectory="$env:BeatSaberDir" `
+            -p:LocalRefsDir="$env:BeatSaberDir" `
+            -p:DisableCopyToPlugins=true
+      - name: Package release zip
+        id: package
+        shell: pwsh
+        run: |
+          $manifest = Get-Content 'HttpStatusExtention\manifest.json' -Raw | ConvertFrom-Json
+          $name = '{0}-{1}-bs{2}' -f $manifest.id, $manifest.version, $manifest.gameVersion
+          $root = '${{ github.workspace }}\HttpStatusExtention'
+          if (-not (Test-Path -LiteralPath $root)) { throw "Project directory not found: $root" }
+
+          # CI (GITHUB_ACTIONS) では BSMT が ZipRelease を無効化し、Artifact ディレクトリに
+          # Plugins レイアウトを組み立てる。無い場合はビルド済み DLL から同じレイアウトを作る。
+          $artifact = @(Get-ChildItem -LiteralPath $root -Recurse -Directory -Filter 'Artifact' -ErrorAction SilentlyContinue |
+            Sort-Object { $_.FullName.Length } -Descending)[0]
+
+          $zip = Join-Path $env:RUNNER_TEMP "$name.zip"
+          if ($artifact) {
+            Write-Host "Packaging artifact directory: $($artifact.FullName)"
+            Get-ChildItem -LiteralPath $artifact.FullName -Recurse -File | ForEach-Object { Write-Host "  " $_.FullName.Substring($artifact.FullName.Length + 1) }
+            Compress-Archive -Path (Join-Path $artifact.FullName '*') -DestinationPath $zip -Force
+          } else {
+            $dll = @(Get-ChildItem -LiteralPath $root -Recurse -File -Filter 'HttpStatusExtention.dll' -ErrorAction SilentlyContinue |
+              Where-Object { $_.FullName -notmatch '\\obj\\' } |
+              Sort-Object LastWriteTime -Descending)[0]
+            if (-not $dll) { throw "Build output not found under ${root}: HttpStatusExtention.dll" }
+
+            $layout = Join-Path $env:RUNNER_TEMP 'layout'
+            New-Item -ItemType Directory -Force -Path (Join-Path $layout 'Plugins') | Out-Null
+            Copy-Item -LiteralPath $dll.FullName -Destination (Join-Path $layout 'Plugins') -Force
+            $pdb = [System.IO.Path]::ChangeExtension($dll.FullName, '.pdb')
+            if (Test-Path -LiteralPath $pdb) { Copy-Item -LiteralPath $pdb -Destination (Join-Path $layout 'Plugins') -Force }
+            Write-Host "Packaging build output: $($dll.FullName)"
+            Compress-Archive -Path (Join-Path $layout '*') -DestinationPath $zip -Force
+          }
+
+          "zip-path=$zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "zip-name=$name" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "Package: $zip"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.package.outputs.zip-name }}
+          path: ${{ steps.package.outputs.zip-path }}
+          if-no-files-found: error
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: build
+    # 手動作成した X.X.X タグを push したときだけ実行する。
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - name: Download release zip
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ needs.build.outputs.zip-name }}
+          path: release
+
+      - name: Attach artifact and set release name
+        shell: bash
+        run: |
+          repo='${{ github.repository }}'
+          tag='${{ needs.build.outputs.tag }}'
+          release_name='${{ needs.build.outputs.release-name }}'
+          sha='${{ needs.build.outputs.commit }}'
+          zip="release/${{ needs.build.outputs.zip-name }}.zip"
+          notes="${release_name} ($(printf '%s' "$sha" | cut -c1-7))."
+
+          if [ ! -f "$zip" ]; then
+            echo "::error::release asset '$zip' not found"; exit 1
+          fi
+
+          version='${{ needs.build.outputs.version }}'
+
+          # セマンティックバージョンのプレリリースは prerelease として作成し、
+          # Latest バッジが通常リリースから優先されるのを防ぐ。
+          pre=()
+          if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+- ]]; then
+            pre=(--prerelease --latest=false)
+          fi
+
+          # タグは手動作成済みなので、そのコミットがビルド対象と一致するか確認する。
+          tag_sha=$(gh api "repos/$repo/commits/$tag" --jq .sha 2>/dev/null || true)
+          if ! [[ "$tag_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            tag_sha=""
+          fi
+          if [ -n "$tag_sha" ] && [ "$tag_sha" != "$sha" ]; then
+            echo "::warning::tag '$tag' points to $tag_sha but this run built $sha; skipping release."
+            exit 0
+          fi
+
+          # 既にリリースがあれば名前を揃えて成果物だけ差し替える。
+          if gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then
+            gh release edit "$tag" --repo "$repo" --title "$release_name" "${pre[@]}"
+          else
+            gh release create "$tag" --repo "$repo" --title "$release_name" --notes "$notes" --verify-tag "${pre[@]}"
+          fi
+          gh release upload "$tag" "$zip" --repo "$repo" --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
