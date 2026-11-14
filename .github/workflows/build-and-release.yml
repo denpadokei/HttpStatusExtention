@@ -80,11 +80,26 @@ jobs:
             {
               "BSIPA": "4.3.6",
               "BSUtils": "1.14.2",
-              "HttpSiraStatus": "9.1.0",
               "SiraUtil": "3.2.1",
               "SongCore": "3.15.3",
               "SongDetailsCache": "1.4.0"
             }
+
+      # HttpSiraStatus 14.x は BeatMods で公開されていないため、
+      # GitHub Releases から取得して Plugins に展開する。
+      - name: Set up HttpSiraStatus
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $destination = Join-Path $env:RUNNER_TEMP 'HttpSiraStatus'
+          New-Item -ItemType Directory -Force -Path $destination | Out-Null
+          gh release download 14.1.0 --repo denpadokei/HttpSiraStatus --pattern '*.zip' --dir $destination --clobber
+          $zip = Get-ChildItem $destination -Filter *.zip | Select-Object -First 1
+          if (-not $zip) {
+            throw 'HttpSiraStatus release zip was not found.'
+          }
+          Expand-Archive -Path $zip.FullName -DestinationPath $env:BeatSaberDir -Force
 
       - name: Build Release
         shell: pwsh
